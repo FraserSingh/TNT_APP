@@ -33,7 +33,11 @@ class User(db.Model):
         return self.role
     def return_team(self):
         return self.team
-    
+
+class Admin(User):
+    __tablename__ = 'admin'
+    id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    role = db.Column(db.String(50), nullable=False, default='admin')
 
 class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -98,8 +102,11 @@ def rota():
     today = datetime.today().date()
     start_of_week = today - timedelta(days=today.weekday())  # Monday
     dates = [start_of_week + timedelta(days=i) for i in range(7)]
-    # Get stores for user's team
-    stores = Store.query.filter_by(team_id=current_user.team_id).all()
+    # Get stores for user's team or all for admin
+    if current_user.role == 'admin':
+        stores = Store.query.all()
+    else:
+        stores = Store.query.filter_by(team_id=current_user.team_id).all()
     # Get shifts
     shifts = Shift.query.filter(Shift.date.in_(dates), Shift.store_id.in_([s.id for s in stores])).all()
     # Create grid: dict store -> dict date -> shift
@@ -119,13 +126,55 @@ def rota():
 @login_required
 def assign(shift_id):
     shift = Shift.query.get(shift_id)
-    if shift and shift.store.team_id == current_user.team_id:
+    if shift and (current_user.role == 'admin' or shift.store.team_id == current_user.team_id):
         if shift.volunteer == current_user:
             shift.volunteer = None
         elif not shift.volunteer:
             shift.volunteer = current_user
         db.session.commit()
     return redirect(url_for('rota'))
+
+@app.route('/admin/stores', methods=['GET', 'POST'])
+@login_required
+def admin_stores():
+    if current_user.role != 'admin':
+        return redirect(url_for('rota'))
+    if request.method == 'POST':
+        if 'csv' in request.files:
+            file = request.files['csv']
+            if file and file.filename.endswith('.csv'):
+                import csv, io
+                stream = io.StringIO(file.read().decode("UTF8"), newline=None)
+                csv_input = csv.reader(stream)
+                for row in csv_input:
+                    if len(row) >= 5:
+                        team = Team.query.filter_by(name=row[4]).first()
+                        if not team:
+                            team = Team(name=row[4])
+                            db.session.add(team)
+                            db.session.commit()
+                        store = Store(name=row[0], description=row[1], address=row[2], pickup_time=row[3], team=team)
+                        db.session.add(store)
+                db.session.commit()
+                flash('Stores imported from CSV')
+        else:
+            name = request.form['name']
+            description = request.form['description']
+            address = request.form['address']
+            pickup_time = request.form['pickup_time']
+            team_name = request.form['team']
+            team = Team.query.filter_by(name=team_name).first()
+            if not team:
+                team = Team(name=team_name)
+                db.session.add(team)
+                db.session.commit()
+            store = Store(name=name, description=description, address=address, pickup_time=pickup_time, team=team)
+            db.session.add(store)
+            db.session.commit()
+            flash('Store added')
+    stores = Store.query.all()
+    teams = Team.query.all()
+    return render_template('admin_stores.html', stores=stores, teams=teams)
 
 if __name__ == '__main__':
     with app.app_context():

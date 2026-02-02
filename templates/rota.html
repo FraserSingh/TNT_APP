@@ -6,7 +6,19 @@
 </head>
 <body>
     <h1>Volunteer Rota</h1>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
     <p>Welcome, {{ current_user.email }} ({{ current_user.team.name }})</p>
+    {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('admin_stores') }}">Manage Stores</a> |
+    {% endif %}
     <a href="{{ url_for('logout') }}">Logout</a>
     <table border="1">
         <thead>
