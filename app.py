@@ -19,6 +19,21 @@ class User(db.Model):
     role = db.Column(db.String(50), nullable=False)  # 'volunteer' or 'admin'
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'))
     team = db.relationship('Team', backref='users')
+    is_active = db.Column(db.Boolean, default=True)
+
+    def get_id(self):
+        return str(self.id)
+    def is_authenticated(self):
+        return self.is_active
+    def is_anonymous(self):
+        return False
+    def is_active(self):
+        return self.is_active
+    def return_role(self):
+        return self.role
+    def return_team(self):
+        return self.team
+    
 
 class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -111,6 +126,26 @@ def assign(shift_id):
             shift.volunteer = current_user
         db.session.commit()
     return redirect(url_for('rota'))
+
+if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # Seed data
+        if not Team.query.first():
+            team1 = Team(name='Collection')
+            team2 = Team(name='Hub')
+            db.session.add(team1)
+            db.session.add(team2)
+            db.session.commit()
+            
+            store1 = Store(name='Store A', description='Pick up food donations', address='123 Main St', pickup_time='10:00 AM', team=team1)
+            store2 = Store(name='Store B', description='Collect supplies', address='456 Elm St', pickup_time='11:00 AM', team=team1)
+            db.session.add(store1)
+            db.session.add(store2)
+            
+            user1 = User(email='volunteer@example.com', password=generate_password_hash('password'), role='volunteer', team=team1)
+            user2 = User(email='admin@example.com', password=generate_password_hash('password'), role='admin', team=team1)
+            db.session.add(user1)
+            db.session.add(user2)
+            db.session.commit()
     app.run(debug=True)
