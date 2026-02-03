@@ -10,3 +10,17 @@ wheels/
 .venv
 instance/
 venv/
+
+# Database
+*.db
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
