@@ -189,8 +189,8 @@ if __name__ == '__main__':
             db.session.commit()
             
             import csv, os
-            if os.path.exists('stores.csv'):
-                with open('stores/stores_data.csv', 'r') as f:
+            if os.path.exists('stores/store_data.csv'):
+                with open('stores/store_data.csv', 'r') as f:
                     reader = csv.reader(f)
                     for row in reader:
                         if len(row) >= 5:
