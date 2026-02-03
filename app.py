@@ -34,11 +34,6 @@ class User(db.Model):
     def return_team(self):
         return self.team
 
-class Admin(User):
-    __tablename__ = 'admin'
-    id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-    role = db.Column(db.String(50), nullable=False, default='admin')
-
 class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -121,18 +116,31 @@ def rota():
                 db.session.add(shift)
                 db.session.commit()
             grid[store][date] = shift
-    return render_template('rota.html', grid=grid, dates=dates, stores=stores)
+    users = User.query.all()
+    return render_template('rota.html', grid=grid, dates=dates, stores=stores, users=users)
 
 @app.route('/assign/<int:shift_id>', methods=['POST'])
 @login_required
 def assign(shift_id):
     shift = Shift.query.get(shift_id)
-    if shift and (current_user.role == 'admin' or shift.store.team_id == current_user.team_id):
-        if shift.volunteer == current_user:
-            shift.volunteer = None
-        elif not shift.volunteer:
-            shift.volunteer = current_user
-        db.session.commit()
+    if shift: 
+        if current_user.role == 'admin':
+            user_id = request.form.get('user_id')
+            if user_id:
+                user = User.query.get(int(user_id))
+                if shift.volunteer:
+                    shift.volunteer = None  # unassign if assigned
+                else:
+                    shift.volunteer = user  # assign selected user
+            else:
+                if shift.volunteer:
+                    shift.volunteer = None  # unassign
+        else:
+            if shift.volunteer == current_user:
+                shift.volunteer = None
+            elif not shift.volunteer:
+                shift.volunteer = current_user
+    db.session.commit()
     return redirect(url_for('rota'))
 
 @app.route('/admin/stores', methods=['GET', 'POST'])
@@ -176,6 +184,29 @@ def admin_stores():
     stores = Store.query.all()
     teams = Team.query.all()
     return render_template('admin_stores.html', stores=stores, teams=teams)
+
+@app.route('/admin/users', methods=['GET', 'POST'])
+@login_required
+def admin_users():
+    if current_user.role != 'admin':
+        return redirect(url_for('rota'))
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        role = request.form['role']
+        team_name = request.form['team']
+        team = Team.query.filter_by(name=team_name).first()
+        if not team:
+            team = Team(name=team_name)
+            db.session.add(team)
+            db.session.commit()
+        user = User(email=email, password=generate_password_hash(password), role=role, team=team)
+        db.session.add(user)
+        db.session.commit()
+        flash('User added')
+    users = User.query.all()
+    teams = Team.query.all()
+    return render_template('admin_users.html', users=users, teams=teams)
 
 if __name__ == '__main__':
     with app.app_context():

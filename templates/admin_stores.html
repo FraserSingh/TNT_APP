@@ -15,7 +15,7 @@
         </ul>
       {% endif %}
     {% endwith %}
-    <a href="{{ url_for('rota') }}">Back to Rota</a>
+    <a href="{{ url_for('rota') }}">Back to Rota</a> | <a href="{{ url_for('admin_users') }}">Manage Users</a>
     <h2>Add Store</h2>
     <form method="POST">
         <label>Name: <input type="text" name="name" required></label><br>
