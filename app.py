@@ -64,6 +64,9 @@ class Shift(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+def load_stores():
+    return Store.query.all()
+
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -102,11 +105,9 @@ def rota():
     today = datetime.today().date()
     start_of_week = today - timedelta(days=today.weekday())  # Monday
     dates = [start_of_week + timedelta(days=i) for i in range(7)]
-    # Get stores for user's team or all for admin
-    if current_user.role == 'admin':
-        stores = Store.query.all()
-    else:
-        stores = Store.query.filter_by(team_id=current_user.team_id).all()
+    # Get stores
+    stores = load_stores()
+
     # Get shifts
     shifts = Shift.query.filter(Shift.date.in_(dates), Shift.store_id.in_([s.id for s in stores])).all()
     # Create grid: dict store -> dict date -> shift
@@ -187,10 +188,20 @@ if __name__ == '__main__':
             db.session.add(team2)
             db.session.commit()
             
-            store1 = Store(name='Store A', description='Pick up food donations', address='123 Main St', pickup_time='10:00 AM', team=team1)
-            store2 = Store(name='Store B', description='Collect supplies', address='456 Elm St', pickup_time='11:00 AM', team=team1)
-            db.session.add(store1)
-            db.session.add(store2)
+            import csv, os
+            if os.path.exists('stores.csv'):
+                with open('stores/stores_data.csv', 'r') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if len(row) >= 5:
+                            team = Team.query.filter_by(name=row[4]).first()
+                            if not team:
+                                team = Team(name=row[4])
+                                db.session.add(team)
+                                db.session.commit()
+                            store = Store(name=row[0], description=row[1], address=row[2], pickup_time=row[3], team=team)
+                            db.session.add(store)
+                db.session.commit()
             
             user1 = User(email='volunteer@example.com', password=generate_password_hash('password'), role='volunteer', team=team1)
             user2 = User(email='admin@example.com', password=generate_password_hash('password'), role='admin', team=team1)
