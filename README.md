@@ -1,2 +1,3 @@
 - run app with uv run python app.py
 - login with email volunteer@example.com and password
+- user admin@example.com to view store manager page
