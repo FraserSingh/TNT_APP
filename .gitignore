@@ -12,7 +12,7 @@ instance/
 venv/
 
 # Database
-**.db
+**/*.db
 
 # Environment variables
 .env
@@ -24,3 +24,4 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+instance/rota.db
