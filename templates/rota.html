@@ -18,6 +18,7 @@
     <p>Welcome, {{ current_user.email }} ({{ current_user.team.name }})</p>
     {% if current_user.role == 'admin' %}
         <a href="{{ url_for('admin_stores') }}">Manage Stores</a> |
+        <a href="{{ url_for('admin_users') }}">Manage Users</a> |
     {% endif %}
     <a href="{{ url_for('logout') }}">Logout</a>
     <table border="1">
@@ -38,15 +39,26 @@
                             {% set shift = grid[store][date] %}
                             {% if shift.volunteer %}
                                 {{ shift.volunteer.email }}
-                                {% if shift.volunteer == current_user %}
+                                {% if current_user.role == 'admin' or shift.volunteer == current_user %}
                                     <form method="POST" action="{{ url_for('assign', shift_id=shift.id) }}" style="display:inline;">
                                         <button type="submit">Unassign</button>
                                     </form>
                                 {% endif %}
                             {% else %}
-                                <form method="POST" action="{{ url_for('assign', shift_id=shift.id) }}" style="display:inline;">
-                                    <button type="submit">Assign</button>
-                                </form>
+                                {% if current_user.role == 'admin' %}
+                                    <form method="POST" action="{{ url_for('assign', shift_id=shift.id) }}" style="display:inline;">
+                                        <select name="user_id">
+                                            {% for u in users %}
+                                                <option value="{{ u.id }}">{{ u.email }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit">Assign</button>
+                                    </form>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('assign', shift_id=shift.id) }}" style="display:inline;">
+                                        <button type="submit">Assign</button>
+                                    </form>
+                                {% endif %}
                             {% endif %}
                         </td>
                     {% endfor %}
