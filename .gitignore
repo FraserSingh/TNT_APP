@@ -12,7 +12,7 @@ instance/
 venv/
 
 # Database
-*.db
+**.db
 
 # Environment variables
 .env
