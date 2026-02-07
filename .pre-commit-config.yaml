@@ -4,7 +4,6 @@ repos:
     hooks:
     - id: commitizen
     - id: commitizen-branch
-    stages: [pre-push]
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -23,3 +22,8 @@ repos:
     rev: 7.3.0
     hooks:
         - id: flake8
+
+-   repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+        - id: isort
