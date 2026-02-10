@@ -5,10 +5,13 @@
     <title>Admin - Dashboard</title>
 </head>
 <body>
+
     <h1>Admin Dashboard</h1>
+
     <p>Total Users: {{ users|length }}</p>
     <p>Total Stores: {{ stores|length }}</p>
     <p>Unassigned shifts: {{ shifts|length }}</p>
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <ul>
@@ -18,8 +21,9 @@
         </ul>
       {% endif %}
     {% endwith %}
-    <a href="{{ url_for('rota') }}">Back to Rota</a> | <a href="{{ url_for('admin_users') }}">Manage Users</a>
 
+    <a href="{{ url_for('rota') }}">Back to Rota</a> |
+    <a href="{{ url_for('admin_users') }}">Manage Users</a>
 
     <h2>Unassigned Shifts</h2>
 
@@ -48,21 +52,58 @@
         </tbody>
     </table>
 
+    <h2>Stores with unassigned shifts</h2>
 
-    <h2>Stores</h2>
-    <ul>
-        {% for store in stores %}
-            <li>{{ store.name }} - {{ store.team.name }} - {{ store.pickup_time }}</li>
-        {% endfor %}
-    </ul>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>
+                    <a href="{{ url_for('admin_summary', sort='date', dir=dir) }}">
+                        Next shift
+                    </a>
+                    {% if request.args.get('sort') == 'date' %}
+                        {{ '↑' if request.args.get('dir') == 'asc' else '↓' }}
+                    {% endif %}
+                </th>
+                <th>
+                    <a href="{{ url_for('admin_summary', sort='store', dir=dir) }}">
+                        Store
+                    </a>
+                    {% if request.args.get('sort') == 'store' %}
+                        {{ '↑' if request.args.get('dir') == 'asc' else '↓' }}
+                    {% endif %}
+                </th>
+                <th>
+                    <a href="{{ url_for('admin_summary', sort='team', dir=dir) }}">
+                        Team
+                    </a>
+                    {% if request.args.get('sort') == 'team' %}
+                        {{ '↑' if request.args.get('dir') == 'asc' else '↓' }}
+                    {% endif %}
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for store, next_date in stores_uncovered %}
+                <tr>
+                    <td>{{ next_date.strftime('%a %d/%m') }}</td>
+                    <td>{{ store.name }}</td>
+                    <td>{{ store.team.name }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="3">No uncovered stores 🎉</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
     <h2>Users</h2>
     <ul>
         {% for user in users %}
-            <li>{{ user.email }} - {{ user.role }} - {{ user.team.name if user.team else 'No Team' }}</li>
+            <li>{{ user.email }} – {{ user.role }}</li>
         {% endfor %}
     </ul>
-
 
 </body>
 </html>

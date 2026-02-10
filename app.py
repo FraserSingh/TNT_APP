@@ -9,6 +9,7 @@ from flask_login import (
     logout_user,
 )
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import asc, desc, func
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
@@ -251,40 +252,55 @@ def admin_users():
     return render_template("admin_users.html", users=users, teams=teams)
 
 
-@app.route("/admin/summary", methods=["GET", "POST"])
+@app.route("/admin/summary")
 @login_required
 def admin_summary():
     if current_user.role != "admin":
         return redirect(url_for("rota"))
 
+    sort = request.args.get("sort", "date")
+    direction = request.args.get("dir", "asc")
+
+    sort_columns = {
+        "date": func.min(Shift.date),
+        "store": Store.name,
+        "team": Team.name,
+    }
+
+    order_col = sort_columns.get(sort, func.min(Shift.date))
+    order_dir = asc if direction == "asc" else desc
+
     users = User.query.all()
-    teams = Team.query.all()
+    stores = Store.query.all()
 
-    # Uncovered shifts
-    shifts_uncovered = Shift.query.filter(Shift.volunteer_id.is_(None)).all()
-
-    # Distinct uncovered dates
-    dates_uncovered = [
-        d[0]
-        for d in db.session.query(Shift.date)
-        .filter(Shift.volunteer_id.is_(None))
-        .distinct()
-        .order_by(Shift.date)
-        .all()
-    ]
+    shifts_uncovered = (
+        Shift.query
+            .filter(Shift.volunteer_id.is_(None))
+            .order_by(Shift.date.asc())
+            .all()
+    )
 
     stores_uncovered = (
-        Store.query.join(Shift).filter(Shift.volunteer_id.is_(None)).distinct().all()
+        db.session.query(Store, func.min(Shift.date).label("next_date"))
+            .join(Shift)
+            .join(Team)
+            .filter(Shift.volunteer_id.is_(None))
+            .group_by(Store.id)
+            .order_by(order_dir(order_col))
+            .all()
     )
+
+    next_dir = "desc" if direction == "asc" else "asc"
 
     return render_template(
         "admin_summary.html",
         users=users,
-        teams=teams,
+        stores=stores,
         shifts=shifts_uncovered,
-        dates=dates_uncovered,
-        stores=stores_uncovered,
+        stores_uncovered=stores_uncovered,
+        dir=next_dir,
     )
+
 
 
 if __name__ == "__main__":
