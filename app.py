@@ -281,9 +281,10 @@ def admin_summary():
     )
 
     stores_uncovered = (
-        db.session.query(Store, func.min(Shift.date).label("next_date"))
+        db.session.query(Store, func.min(Shift.date).label("shift_date"))
             .join(Shift)
             .join(Team)
+            .filter(Shift.date.is_(datetime.today().date()))
             .filter(Shift.volunteer_id.is_(None))
             .group_by(Store.id)
             .order_by(order_dir(order_col))
