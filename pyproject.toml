@@ -34,3 +34,21 @@ dev = [
     "pre-commit>=4.5.1",
     "ruff>=0.15.2",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+select = [
+  "E",  # pycodestyle
+  "F",  # pyflakes
+  "I",  # import sorting (replaces isort)
+]
+
+ignore = [
+  "E203",  # black compatibility
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
