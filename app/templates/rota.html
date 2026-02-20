@@ -6,6 +6,7 @@
 </head>
 <body>
     <h1>Volunteer Rota</h1>
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <ul>
@@ -15,15 +16,21 @@
         </ul>
       {% endif %}
     {% endwith %}
-    <p>Welcome, {{ current_user.email }} ({{ current_user.team.name }})</p>
-    {% if current_user.role == 'admin' %}
-        <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
-        <a href="{{ url_for('admin.users') }}">Manage Users</a> |
-        <!-- Logout Link -->
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('auth.logout') }}">Logout</a>
+
+    <p>
+        Welcome, {{ current_user.email }}
+        ({{ current_user.team.name if current_user.team else "No Team" }})
+    </p>
+
+    <nav>
+        {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
+            <a href="{{ url_for('admin.users') }}">Manage Users</a> |
+            <a href="{{ url_for('rota.admin_summary') }}">Admin Dashboard</a> |
         {% endif %}
-    {% endif %}
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </nav>
+
     <table border="1">
         <thead>
             <tr>
@@ -36,38 +43,57 @@
         <tbody>
             {% for store in stores %}
                 <tr>
-                    <td>{{ store.name }}<br><small>{{ store.pickup_time }}</small></td>
+                    <td>
+                        {{ store.name }}<br>
+                        <small>{{ store.pickup_time }}</small>
+                    </td>
+
                     {% for date in dates %}
                         <td>
                             {% set shift = grid[store][date] %}
+
                             {% if shift.volunteer %}
                                 {{ shift.volunteer.email }}
+
                                 {% if current_user.role == 'admin' or shift.volunteer == current_user %}
-                                    <form method="POST" action="{{ url_for('assign', shift_id=shift.id) }}" style="display:inline;">
+                                    <form method="POST"
+                                          action="{{ url_for('rota.assign', shift_id=shift.id) }}"
+                                          style="display:inline;">
                                         <button type="submit">Unassign</button>
                                     </form>
                                 {% endif %}
+
                             {% else %}
+
                                 {% if current_user.role == 'admin' %}
-                                    <form method="POST" action="{{ url_for('assign', shift_id=shift.id) }}" style="display:inline;">
+                                    <form method="POST"
+                                          action="{{ url_for('rota.assign', shift_id=shift.id) }}"
+                                          style="display:inline;">
                                         <select name="user_id">
                                             {% for u in users %}
-                                                <option value="{{ u.id }}">{{ u.email }}</option>
+                                                <option value="{{ u.id }}">
+                                                    {{ u.email }}
+                                                </option>
                                             {% endfor %}
                                         </select>
                                         <button type="submit">Assign</button>
                                     </form>
                                 {% else %}
-                                    <form method="POST" action="{{ url_for('assign', shift_id=shift.id) }}" style="display:inline;">
+                                    <form method="POST"
+                                          action="{{ url_for('rota.assign', shift_id=shift.id) }}"
+                                          style="display:inline;">
                                         <button type="submit">Assign</button>
                                     </form>
                                 {% endif %}
+
                             {% endif %}
                         </td>
                     {% endfor %}
+
                 </tr>
             {% endfor %}
         </tbody>
     </table>
+
 </body>
 </html>
