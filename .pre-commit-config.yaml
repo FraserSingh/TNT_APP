@@ -5,3 +5,9 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.13.6
+    hooks:
+    - id: commitizen
+    - id: commitizen-branch
