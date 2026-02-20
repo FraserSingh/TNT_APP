@@ -12,6 +12,27 @@ dependencies = [
     "flask-sqlalchemy>=3.1.1",
     "pre-commit>=4.5.1",
     "werkzeug>=3.1.5",
+    "gunicorn>=21.2.0"     , 
+    "python-dotenv>=1.0.0"  ,
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # E=pycodestyle, F=pyflakes, I=import sorting
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.13.6",
+    "pre-commit>=4.5.1",
+    "ruff>=0.15.2",
 ]
 
 [tool.ruff]

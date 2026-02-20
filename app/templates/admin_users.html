@@ -5,6 +5,17 @@
     <title>Admin - Manage Users</title>
 </head>
 <body>
+    <!-- Top navigation -->
+    <nav>
+        <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
+        <a href="{{ url_for('admin.users') }}">Manage Users</a> |
+        <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
+        <!-- Logout Link -->
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% endif %}
+    </nav>
+    
     <h1>Manage Users</h1>
     {% with messages = get_flashed_messages() %}
       {% if messages %}
@@ -15,7 +26,6 @@
         </ul>
       {% endif %}
     {% endwith %}
-    <a href="{{ url_for('rota') }}">Back to Rota</a> | <a href="{{ url_for('admin_stores') }}">Manage Stores</a>
     <h2>Add User</h2>
     <form method="POST">
         <label>Email: <input type="email" name="email" required></label><br>

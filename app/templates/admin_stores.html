@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Manage Stores</title>
+</head>
+<body>
+    <h1>Manage Stores</h1>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Top navigation -->
+    <nav>
+        <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
+        <a href="{{ url_for('admin.users') }}">Manage Users</a> |
+        <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
+        <!-- Logout Link -->
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% endif %}
+    </nav>
+
+    <!-- Add Store Form -->
+    <h2>Add Store</h2>
+    <form method="POST">
+        <label>Name: <input type="text" name="name" required></label><br>
+        <label>Description: <textarea name="description"></textarea></label><br>
+        <label>Address: <input type="text" name="address"></label><br>
+        <label>Pickup Time: <input type="text" name="pickup_time"></label><br>
+        <label>Team: <input type="text" name="team" required></label><br>
+        <button type="submit">Add Store</button>
+    </form>
+
+    <!-- CSV Import -->
+    <h2>Import from CSV</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="csv" accept=".csv" required>
+        <button type="submit">Import</button>
+    </form>
+    <p>CSV format: name,description,address,pickup_time,team</p>
+
+    <!-- Stores Table -->
+    <h2>Stores</h2>
+    <table border="1" cellpadding="5">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Team</th>
+                <th>Pickup Time</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for store in stores %}
+            <tr>
+                <td>{{ store.name }}</td>
+                <td>{{ store.team.name }}</td>
+                <td>{{ store.pickup_time }}</td>
+                <td>{{ store.description }}</td>
+                <td>
+                    <a href="{{ url_for('admin.edit_store', store_id=store.id) }}">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
