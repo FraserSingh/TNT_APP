@@ -21,3 +21,10 @@ pre-commit autoupdate
 pre-commit install-hooks
 uv sync
 ```
+
+
+## Run with Gunicorn
+
+`uv run gunicorn "app:create_app()" --bind 0.0.0.0:8080 --workers 1 --threads 2`
+
+admin password is "admin_pass"

@@ -1,0 +1,18 @@
+<h1>Edit Store</h1>
+<form method="POST">
+    <label>Name: <input type="text" name="name" value="{{ store.name }}" required></label><br>
+    <label>Description: <textarea name="description">{{ store.description }}</textarea></label><br>
+    <label>Address: <input type="text" name="address" value="{{ store.address }}"></label><br>
+    <label>Pickup Time: <input type="text" name="pickup_time" value="{{ store.pickup_time }}"></label><br>
+    <label>Team: 
+        <select name="team">
+            {% for team in teams %}
+            <option value="{{ team.name }}" {% if team.id == store.team.id %}selected{% endif %}>
+                {{ team.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label><br>
+    <button type="submit">Save</button>
+</form>
+<a href="{{ url_for('admin.stores') }}">Back to Stores</a>
