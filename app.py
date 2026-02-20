@@ -1,42 +1,69 @@
-from flask import Flask
+import os
+from datetime import datetime, timedelta
+
+from flask import Flask, flash, redirect, render_template, request, url_for
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    current_user,
+    login_required,
+    login_user,
+    logout_user,
+)
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from werkzeug.security import check_password_hash, generate_password_hash
+
+# -----------------------------------------------------------------------------
+# App Configuration
+# -----------------------------------------------------------------------------
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key'  # Change this
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rota.db'
+
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
+
+# Default to SQLite for local dev, PostgreSQL in production
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    # Fly/Render sometimes require this fix for postgres URLs
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///rota.db"
+
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
 login_manager = LoginManager()
+login_manager.login_view = "login"
 login_manager.init_app(app)
 
+# -----------------------------------------------------------------------------
 # Models
-class User(db.Model):
+# -----------------------------------------------------------------------------
+
+
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), nullable=False)  # 'volunteer' or 'admin'
-    team_id = db.Column(db.Integer, db.ForeignKey('team.id'))
-    team = db.relationship('Team', backref='users')
-    is_active = db.Column(db.Boolean, default=True)
+    team_id = db.Column(db.Integer, db.ForeignKey("team.id"))
+    active = db.Column(db.Boolean, default=True)
 
-    def get_id(self):
-        return str(self.id)
-    def is_authenticated(self):
-        return self.is_active
-    def is_anonymous(self):
-        return False
+    team = db.relationship("Team", backref="users")
+    shifts = db.relationship("Shift", backref="volunteer")
+
     def is_active(self):
-        return self.is_active
-    def return_role(self):
-        return self.role
-    def return_team(self):
-        return self.team
+        return self.active
+
 
 class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+
 
 class Store(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -44,199 +71,192 @@ class Store(db.Model):
     description = db.Column(db.Text)
     address = db.Column(db.String(200))
     pickup_time = db.Column(db.String(50))
-    team_id = db.Column(db.Integer, db.ForeignKey('team.id'))
-    team = db.relationship('Team', backref='stores')
+    team_id = db.Column(db.Integer, db.ForeignKey("team.id"))
+
+    team = db.relationship("Team", backref="stores")
+    shifts = db.relationship("Shift", backref="store")
+
 
 class Shift(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
-    store_id = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=False)
-    volunteer_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    store = db.relationship('Store', backref='shifts')
-    volunteer = db.relationship('User', backref='shifts')
+    store_id = db.Column(db.Integer, db.ForeignKey("store.id"), nullable=False)
+    volunteer_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+
+# -----------------------------------------------------------------------------
+# Login Loader
+# -----------------------------------------------------------------------------
+
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
-def load_stores():
-    return Store.query.all()
 
-from flask import render_template, request, redirect, url_for, flash
-from flask_login import login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
-
+# -----------------------------------------------------------------------------
 # Routes
+# -----------------------------------------------------------------------------
 
-@app.route('/')
+
+@app.route("/")
 def home():
     if current_user.is_authenticated:
-        return redirect(url_for('rota'))
-    return redirect(url_for('login'))
+        return redirect(url_for("rota"))
+    return redirect(url_for("login"))
 
-@app.route('/login', methods=['GET', 'POST'])
+
+# ---------------------------------------------------------------------
+
+
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
+    if request.method == "POST":
+        email = request.form["email"].lower().strip()
+        password = request.form["password"]
+
         user = User.query.filter_by(email=email).first()
+
         if user and check_password_hash(user.password, password):
             login_user(user)
-            return redirect(url_for('rota'))
-        flash('Invalid credentials')
-    return render_template('login.html')
+            return redirect(url_for("rota"))
 
-@app.route('/logout')
+        flash("Invalid credentials")
+
+    return render_template("login.html")
+
+
+# ---------------------------------------------------------------------
+
+
+@app.route("/logout")
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for("login"))
 
-@app.route('/rota')
+
+# ---------------------------------------------------------------------
+
+
+@app.route("/rota")
 @login_required
 def rota():
-    # Get current week
-    today = datetime.today().date()
-    start_of_week = today - timedelta(days=today.weekday())  # Monday
+    today = datetime.utcnow().date()
+    start_of_week = today - timedelta(days=today.weekday())
     dates = [start_of_week + timedelta(days=i) for i in range(7)]
-    # Get stores
-    stores = load_stores()
 
-    # Get shifts
-    shifts = Shift.query.filter(Shift.date.in_(dates), Shift.store_id.in_([s.id for s in stores])).all()
-    # Create grid: dict store -> dict date -> shift
+    stores = Store.query.all()
+
+    shifts = Shift.query.filter(
+        Shift.date.in_(dates),
+        Shift.store_id.in_([s.id for s in stores]),
+    ).all()
+
     grid = {}
+
     for store in stores:
         grid[store] = {}
+
         for date in dates:
-            shift = next((s for s in shifts if s.store_id == store.id and s.date == date), None)
+            shift = next(
+                (s for s in shifts if s.store_id == store.id and s.date == date),
+                None,
+            )
+
             if not shift:
                 shift = Shift(date=date, store_id=store.id)
                 db.session.add(shift)
-                db.session.commit()
-            grid[store][date] = shift
-    users = User.query.all()
-    return render_template('rota.html', grid=grid, dates=dates, stores=stores, users=users)
 
-@app.route('/assign/<int:shift_id>', methods=['POST'])
+            grid[store][date] = shift
+
+    db.session.commit()
+
+    users = User.query.all()
+
+    return render_template(
+        "rota.html",
+        grid=grid,
+        dates=dates,
+        stores=stores,
+        users=users,
+    )
+
+
+# ---------------------------------------------------------------------
+
+
+@app.route("/assign/<int:shift_id>", methods=["POST"])
 @login_required
 def assign(shift_id):
-    shift = Shift.query.get(shift_id)
-    if shift: 
-        if current_user.role == 'admin':
-            user_id = request.form.get('user_id')
-            if user_id:
-                user = User.query.get(int(user_id))
-                if shift.volunteer:
-                    shift.volunteer = None  # unassign if assigned
-                else:
-                    shift.volunteer = user  # assign selected user
-            else:
-                if shift.volunteer:
-                    shift.volunteer = None  # unassign
+    shift = db.session.get(Shift, shift_id)
+
+    if not shift:
+        return redirect(url_for("rota"))
+
+    if current_user.role == "admin":
+        user_id = request.form.get("user_id")
+
+        if user_id:
+            shift.volunteer_id = int(user_id)
         else:
-            if shift.volunteer == current_user:
-                shift.volunteer = None
-            elif not shift.volunteer:
-                shift.volunteer = current_user
+            shift.volunteer_id = None
+
+    else:
+        if shift.volunteer_id == current_user.id:
+            shift.volunteer_id = None
+        elif not shift.volunteer_id:
+            shift.volunteer_id = current_user.id
+
     db.session.commit()
-    return redirect(url_for('rota'))
 
-@app.route('/admin/stores', methods=['GET', 'POST'])
-@login_required
-def admin_stores():
-    if current_user.role != 'admin':
-        return redirect(url_for('rota'))
-    if request.method == 'POST':
-        if 'csv' in request.files:
-            file = request.files['csv']
-            if file and file.filename.endswith('.csv'):
-                import csv, io
-                stream = io.StringIO(file.read().decode("UTF8"), newline=None)
-                csv_input = csv.reader(stream)
-                for row in csv_input:
-                    if len(row) >= 5:
-                        team = Team.query.filter_by(name=row[4]).first()
-                        if not team:
-                            team = Team(name=row[4])
-                            db.session.add(team)
-                            db.session.commit()
-                        store = Store(name=row[0], description=row[1], address=row[2], pickup_time=row[3], team=team)
-                        db.session.add(store)
-                db.session.commit()
-                flash('Stores imported from CSV')
-        else:
-            name = request.form['name']
-            description = request.form['description']
-            address = request.form['address']
-            pickup_time = request.form['pickup_time']
-            team_name = request.form['team']
-            team = Team.query.filter_by(name=team_name).first()
-            if not team:
-                team = Team(name=team_name)
-                db.session.add(team)
-                db.session.commit()
-            store = Store(name=name, description=description, address=address, pickup_time=pickup_time, team=team)
-            db.session.add(store)
-            db.session.commit()
-            flash('Store added')
-    stores = Store.query.all()
-    teams = Team.query.all()
-    return render_template('admin_stores.html', stores=stores, teams=teams)
+    return redirect(url_for("rota"))
 
-@app.route('/admin/users', methods=['GET', 'POST'])
+
+# ---------------------------------------------------------------------
+
+
+@app.route("/admin/users", methods=["GET", "POST"])
 @login_required
 def admin_users():
-    if current_user.role != 'admin':
-        return redirect(url_for('rota'))
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        role = request.form['role']
-        team_name = request.form['team']
+    if current_user.role != "admin":
+        return redirect(url_for("rota"))
+
+    if request.method == "POST":
+        email = request.form["email"].lower().strip()
+        password = request.form["password"]
+        role = request.form["role"]
+        team_name = request.form["team"]
+
         team = Team.query.filter_by(name=team_name).first()
         if not team:
             team = Team(name=team_name)
             db.session.add(team)
-            db.session.commit()
-        user = User(email=email, password=generate_password_hash(password), role=role, team=team)
+
+        user = User(
+            email=email,
+            password=generate_password_hash(password),
+            role=role,
+            team=team,
+        )
+
         db.session.add(user)
         db.session.commit()
-        flash('User added')
+
+        flash("User added")
+
     users = User.query.all()
     teams = Team.query.all()
-    return render_template('admin_users.html', users=users, teams=teams)
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        # Seed data
-        if not Team.query.first():
-            team1 = Team(name='Collection')
-            team2 = Team(name='Hub')
-            db.session.add(team1)
-            db.session.add(team2)
-            db.session.commit()
-            
-            import csv, os
-            if os.path.exists('stores/store_data.csv'):
-                with open('stores/store_data.csv', 'r') as f:
-                    reader = csv.reader(f)
-                    for row in reader:
-                        if len(row) >= 5:
-                            team = Team.query.filter_by(name=row[4]).first()
-                            if not team:
-                                team = Team(name=row[4])
-                                db.session.add(team)
-                                db.session.commit()
-                            store = Store(name=row[0], description=row[1], address=row[2], pickup_time=row[3], team=team)
-                            db.session.add(store)
-                db.session.commit()
-            
-            user1 = User(email='volunteer@example.com', password=generate_password_hash('password'), role='volunteer', team=team1)
-            user2 = User(email='admin@example.com', password=generate_password_hash('password'), role='admin', team=team1)
-            db.session.add(user1)
-            db.session.add(user2)
-            db.session.commit()
-    app.run(debug=True)
+    return render_template("admin_users.html", users=users, teams=teams)
+
+
+# -----------------------------------------------------------------------------
+# CLI Setup Command (Optional)
+# -----------------------------------------------------------------------------
+
+
+@app.cli.command("init-db")
+def init_db():
+    db.create_all()
+    print("Database initialised.")
