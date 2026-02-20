@@ -9,15 +9,78 @@ from .models import Shift, Store, Team, User
 
 rota_bp = Blueprint("rota", __name__)
 
+DUMMY_STORE_NAMES = {
+    "Store Alpha",
+    "Store Bravo",
+    "Store Charlie",
+    "Store Delta",
+    "Store Echo",
+}
+
+
+def is_dummy_store(store):
+    return store.name in DUMMY_STORE_NAMES
+
+
+def ensure_dummy_stores():
+    if Store.query.first():
+        return
+
+    default_team = Team.query.filter_by(name="COLLECTION").first()
+    if not default_team:
+        default_team = Team(name="COLLECTION")
+        db.session.add(default_team)
+        db.session.flush()
+
+    dummy_stores = [
+        ("Store Alpha", "08:30 PM"),
+        ("Store Bravo", "09:00 PM"),
+        ("Store Charlie", "09:30 PM"),
+        ("Store Delta", "10:00 PM"),
+        ("Store Echo", "10:30 PM"),
+    ]
+
+    for store_name, pickup_time in dummy_stores:
+        db.session.add(
+            Store(
+                name=store_name,
+                description="Demo store",
+                pickup_time=pickup_time,
+                team=default_team,
+            )
+        )
+
+    db.session.commit()
+
 
 @rota_bp.route("/")
 @login_required
 def rota():
+    ensure_dummy_stores()
+
     today = datetime.now(timezone.utc).date()
     start_of_week = today - timedelta(days=today.weekday())
     dates = [start_of_week + timedelta(days=i) for i in range(7)]
+    weekday_names = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+    show_dummy_stores = request.args.get("show_dummy", "1") == "1"
 
-    stores = Store.query.all()
+    all_stores = Store.query.order_by(Store.name.asc()).all()
+    dummy_count = len([store for store in all_stores if is_dummy_store(store)])
+    real_count = len(all_stores) - dummy_count
+
+    if show_dummy_stores:
+        stores = all_stores
+    else:
+        stores = [store for store in all_stores if not is_dummy_store(store)]
+
     shifts = Shift.query.filter(Shift.date.in_(dates)).all()
 
     grid = {}
@@ -39,7 +102,18 @@ def rota():
     users = User.query.all()
 
     return render_template(
-        "rota.html", grid=grid, dates=dates, stores=stores, users=users
+        "rota.html",
+        grid=grid,
+        dates=dates,
+        stores=stores,
+        store_count=len(all_stores),
+        dummy_store_count=dummy_count,
+        real_store_count=real_count,
+        show_dummy_stores=show_dummy_stores,
+        users=users,
+        week_start=dates[0],
+        week_end=dates[-1],
+        weekday_names=weekday_names,
     )
 
 

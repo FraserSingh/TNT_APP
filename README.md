@@ -1,6 +1,7 @@
 # Using app
 
-- run app with uv run python app.py
+- run app locally with `uv run python -m flask --app app:create_app run --debug`
+    - or `uv run gunicorn "app:create_app()" --bind 0.0.0.0:8080 --workers 1 --threads 2`
 - login with email volunteer@example.com and password
 - user admin@example.com to view store manager page
 

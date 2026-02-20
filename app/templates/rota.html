@@ -6,6 +6,10 @@
 </head>
 <body>
     <h1>Volunteer Rota</h1>
+    <p>
+        <strong>Current Week:</strong>
+        {{ week_start.strftime('%A %d %b %Y') }} to {{ week_end.strftime('%A %d %b %Y') }}
+    </p>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
@@ -31,12 +35,23 @@
         <a href="{{ url_for('auth.logout') }}">Logout</a>
     </nav>
 
+    <p>
+        <strong>Stores loaded:</strong> {{ store_count }}
+        ({{ real_store_count }} real, {{ dummy_store_count }} dummy)
+        |
+        {% if show_dummy_stores %}
+            <a href="{{ url_for('rota.rota', show_dummy=0) }}">Hide dummy stores</a>
+        {% else %}
+            <a href="{{ url_for('rota.rota', show_dummy=1) }}">Show dummy stores</a>
+        {% endif %}
+    </p>
+
     <table border="1">
         <thead>
             <tr>
                 <th>Store</th>
-                {% for date in dates %}
-                    <th>{{ date.strftime('%a %d/%m') }}</th>
+                {% for i in range(dates|length) %}
+                    <th>{{ weekday_names[i] }}<br><small>{{ dates[i].strftime('%d/%m') }}</small></th>
                 {% endfor %}
             </tr>
         </thead>
@@ -90,6 +105,10 @@
                         </td>
                     {% endfor %}
 
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="8">No stores to display for this view. Use "Show dummy stores" above.</td>
                 </tr>
             {% endfor %}
         </tbody>
