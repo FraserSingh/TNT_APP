@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, render_template
 from flask_login import login_required
@@ -12,7 +12,7 @@ rota_bp = Blueprint("rota", __name__)
 @rota_bp.route("/")
 @login_required
 def rota():
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     start_of_week = today - timedelta(days=today.weekday())
     dates = [start_of_week + timedelta(days=i) for i in range(7)]
 
