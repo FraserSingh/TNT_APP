@@ -2,7 +2,6 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required, login_user, logout_user
 from werkzeug.security import check_password_hash
 
-from .extensions import db
 from .models import User
 
 auth_bp = Blueprint("auth", __name__)
@@ -18,9 +17,6 @@ def login():
 
         if user and check_password_hash(user.password, password):
             login_user(user)
-            db.session.refresh(
-                user
-            )  # Refresh the user to ensure the latest data is loaded
             return redirect(url_for("rota.rota"))
 
         flash("Invalid credentials")

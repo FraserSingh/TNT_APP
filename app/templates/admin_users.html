@@ -8,7 +8,6 @@
     <!-- Top navigation -->
     <nav>
         <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
-        <a href="{{ url_for('admin.users') }}">Manage Users</a> |
         <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
         <!-- Logout Link -->
         {% if current_user.is_authenticated %}
@@ -63,18 +62,18 @@
                 <td>{{ user.team.name }}</td>
                 <td>
                     <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}">
-                        <select name="action" onchange="
-                            if (this.value === 'edit') {
-                                window.location='{{ url_for('admin.edit_user', user_id=user.id) }}';
-                                this.value='';
-                            } else if (this.value === 'delete') {
-                                if (confirm('Delete user {{ user.email }}? This cannot be undone.')) {
+                        <select name="action" onchange='
+                            if (this.value === "edit") {
+                                window.location="{{ url_for("admin.edit_user", user_id=user.id) }}";
+                                this.value="";
+                            } else if (this.value === "delete") {
+                                if (confirm({{ ("Delete user " ~ user.email ~ "? This cannot be undone.") | tojson }})) {
                                     this.form.submit();
                                 } else {
-                                    this.value='';
+                                    this.value="";
                                 }
                             }
-                        ">
+                        '>
                             <option value="">Select action</option>
                             <option value="edit">Edit user</option>
                             <option value="delete">Delete user</option>

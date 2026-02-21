@@ -1,3 +1,4 @@
+import logging
 import os
 
 from flask import Flask
@@ -11,6 +12,10 @@ from .rota import *  # noqa: F401, F403
 
 def create_app():
     app = Flask(__name__)
+
+    # Configure application-wide logging once
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.DEBUG)
 
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
 
