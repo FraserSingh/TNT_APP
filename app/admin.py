@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from werkzeug.security import generate_password_hash
 
 from .extensions import db
-from .models import Store, Team, User
+from .models import Shift, Store, Team, User
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -43,6 +45,56 @@ def users():
     return render_template("admin_users.html", users=users, teams=teams)
 
 
+@admin_bp.route("/users/edit/<int:user_id>", methods=["GET", "POST"])
+@login_required
+def edit_user(user_id):
+    if current_user.role != "admin":
+        return redirect(url_for("rota.rota"))
+
+    user = User.query.get_or_404(user_id)
+
+    if request.method == "POST":
+        user.email = request.form["email"].lower().strip()
+        user.role = request.form["role"]
+
+        team_name = request.form["team"]
+        team = Team.query.filter_by(name=team_name).first()
+        if not team:
+            team = Team(name=team_name)
+            db.session.add(team)
+            db.session.commit()
+        user.team = team
+
+        password = request.form.get("password", "").strip()
+        if password:
+            user.password = generate_password_hash(password)
+
+        db.session.commit()
+        flash("User updated")
+        return redirect(url_for("admin.users"))
+
+    teams = Team.query.all()
+    return render_template("admin_edit_user.html", user=user, teams=teams)
+
+
+@admin_bp.route("/users/delete/<int:user_id>", methods=["POST"])
+@login_required
+def delete_user(user_id):
+    if current_user.role != "admin":
+        return redirect(url_for("rota.rota"))
+
+    user = User.query.get_or_404(user_id)
+
+    # Unassign this user's shifts instead of deleting them
+    for shift in list(user.shifts):
+        shift.volunteer = None
+
+    db.session.delete(user)
+    db.session.commit()
+    flash("User deleted")
+    return redirect(url_for("admin.users"))
+
+
 @admin_bp.route("/stores", methods=["GET", "POST"])
 @login_required
 def stores():
@@ -74,6 +126,19 @@ def stores():
                             team=team,
                         )
                         db.session.add(store)
+                        db.session.flush()
+
+                        # Create unassigned shifts for the new store
+                        for i in range(7):  # Create shifts for a week
+                            shift_date = datetime.utcnow().date() + timedelta(days=i)
+                            db.session.add(
+                                Shift(
+                                    date=shift_date,
+                                    store_id=store.id,
+                                    volunteer_id=None,  # Ensure shifts are unassigned
+                                )
+                            )
+
                 db.session.commit()
                 flash("Stores imported from CSV")
         else:
@@ -98,6 +163,19 @@ def stores():
                 team=team,
             )
             db.session.add(store)
+            db.session.flush()
+
+            # Create unassigned shifts for the new store
+            for i in range(7):  # Create shifts for a week
+                shift_date = datetime.utcnow().date() + timedelta(days=i)
+                db.session.add(
+                    Shift(
+                        date=shift_date,
+                        store_id=store.id,
+                        volunteer_id=None,  # Ensure shifts are unassigned
+                    )
+                )
+
             db.session.commit()
             flash("Store added")
 
@@ -132,3 +210,21 @@ def edit_store(store_id):
 
     teams = Team.query.all()
     return render_template("edit_store.html", store=store, teams=teams)
+
+
+@admin_bp.route("/stores/delete/<int:store_id>", methods=["POST"])
+@login_required
+def delete_store(store_id):
+    if current_user.role != "admin":
+        return redirect(url_for("rota.rota"))
+
+    store = Store.query.get_or_404(store_id)
+
+    # Delete associated shifts first to satisfy foreign key constraints
+    for shift in list(store.shifts):
+        db.session.delete(shift)
+
+    db.session.delete(store)
+    db.session.commit()
+    flash("Store deleted")
+    return redirect(url_for("admin.stores"))

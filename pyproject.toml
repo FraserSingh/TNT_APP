@@ -16,10 +16,6 @@ dependencies = [
     "python-dotenv>=1.0.0"  ,
 ]
 
-[tool.ruff]
-line-length = 88
-target-version = "py312"
-
 [tool.ruff.lint]
 select = ["E", "F", "I"]  # E=pycodestyle, F=pyflakes, I=import sorting
 ignore = []
@@ -39,16 +35,3 @@ dev = [
 line-length = 88
 target-version = "py312"
 
-select = [
-  "E",  # pycodestyle
-  "F",  # pyflakes
-  "I",  # import sorting (replaces isort)
-]
-
-ignore = [
-  "E203",  # black compatibility
-]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"

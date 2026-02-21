@@ -9,10 +9,15 @@
     <h1>Admin Dashboard</h1>
 
     <nav>
-        <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
-        <a href="{{ url_for('admin.users') }}">Manage Users</a> |
-        <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
-        <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
+            <a href="{{ url_for('admin.users') }}">Manage Users</a> |
+            <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('rota.rota') }}">Rota</a> |
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% endif %}
     </nav>
 
     <p>Total Users: {{ users|length }}</p>

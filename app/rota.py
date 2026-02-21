@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, redirect, render_template, request, url_for
@@ -6,6 +7,10 @@ from sqlalchemy import asc, desc, func
 
 from .extensions import db
 from .models import Shift, Store, Team, User
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 rota_bp = Blueprint("rota", __name__)
 
@@ -41,14 +46,25 @@ def ensure_dummy_stores():
     ]
 
     for store_name, pickup_time in dummy_stores:
-        db.session.add(
-            Store(
-                name=store_name,
-                description="Demo store",
-                pickup_time=pickup_time,
-                team=default_team,
-            )
+        store = Store(
+            name=store_name,
+            description="Demo store",
+            pickup_time=pickup_time,
+            team=default_team,
         )
+        db.session.add(store)
+        db.session.flush()
+
+        # Create unassigned dummy shifts for the store
+        for i in range(7):  # Create shifts for a week
+            shift_date = datetime.utcnow().date() + timedelta(days=i)
+            db.session.add(
+                Shift(
+                    date=shift_date,
+                    store_id=store.id,
+                    volunteer_id=None,  # Ensure shifts are unassigned
+                )
+            )
 
     db.session.commit()
 
@@ -117,37 +133,11 @@ def rota():
     )
 
 
-# NOTE untested, copied from previous branch
-# allow drop down assignment in rota page (drop down from template html)
-@rota_bp.route("/assign/<int:shift_id>", methods=["POST"])
-@login_required
-def assign(shift_id):
-    shift = Shift.query.get_or_404(shift_id)
-
-    if current_user.role == "admin":
-        user_id = request.form.get("user_id")
-
-        if user_id:
-            user = User.query.get(int(user_id))
-            shift.volunteer = user
-        else:
-            shift.volunteer = None
-
-    else:
-        # normal user behaviour
-        if shift.volunteer == current_user:
-            shift.volunteer = None
-        elif not shift.volunteer:
-            shift.volunteer = current_user
-
-    db.session.commit()
-    return redirect(url_for("rota.rota"))
-
-
 # Show a summary of unassigned shifts for the earliest date in the week
 @rota_bp.route("/summary")
 @login_required
 def admin_summary():
+    logger.debug(f"Current user role: {current_user.role}")  # Log the current user role
     if current_user.role != "admin":
         return redirect(url_for("rota.rota"))
 
@@ -187,3 +177,32 @@ def admin_summary():
         stores_uncovered=stores_uncovered,
         dir=next_dir,
     )
+
+
+@rota_bp.route("/toggle_shift/<int:shift_id>", methods=["POST"])
+@login_required
+def toggle_shift(shift_id):
+    shift = Shift.query.get_or_404(shift_id)
+
+    logger.debug(f"Current user role: {current_user.role}")  # Log the current user role
+
+    if current_user.role == "admin":
+        # Admin can assign or unassign any user to/from the shift
+        user_id = request.form.get("user_id")
+        if user_id:
+            user = User.query.get(int(user_id))
+            shift.volunteer = user
+        else:
+            shift.volunteer = None
+    else:
+        # General user can only assign/unassign themselves
+        if shift.volunteer == current_user:
+            shift.volunteer = None
+        elif not shift.volunteer:
+            shift.volunteer = current_user
+        else:
+            # If the shift is already assigned to someone else, deny the action
+            return "Shift is already assigned to another volunteer.", 403
+
+    db.session.commit()
+    return redirect(url_for("rota.rota"))

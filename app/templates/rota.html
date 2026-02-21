@@ -32,6 +32,7 @@
             <a href="{{ url_for('admin.users') }}">Manage Users</a> |
             <a href="{{ url_for('rota.admin_summary') }}">Admin Dashboard</a> |
         {% endif %}
+        <a href="{{ url_for('rota.rota') }}">Rota</a> |
         <a href="{{ url_for('auth.logout') }}">Logout</a>
     </nav>
 
@@ -72,7 +73,7 @@
 
                                 {% if current_user.role == 'admin' or shift.volunteer == current_user %}
                                     <form method="POST"
-                                          action="{{ url_for('rota.assign', shift_id=shift.id) }}"
+                                          action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}"
                                           style="display:inline;">
                                         <button type="submit">Unassign</button>
                                     </form>
@@ -82,9 +83,10 @@
 
                                 {% if current_user.role == 'admin' %}
                                     <form method="POST"
-                                          action="{{ url_for('rota.assign', shift_id=shift.id) }}"
+                                          action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}"
                                           style="display:inline;">
                                         <select name="user_id">
+                                            <option value="">Unassigned</option> <!-- Added option for unassigned -->
                                             {% for u in users %}
                                                 <option value="{{ u.id }}">
                                                     {{ u.email }}
@@ -95,8 +97,12 @@
                                     </form>
                                 {% else %}
                                     <form method="POST"
-                                          action="{{ url_for('rota.assign', shift_id=shift.id) }}"
+                                          action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}"
                                           style="display:inline;">
+                                        <select name="user_id">
+                                            <option value="">Unassigned</option>
+                                            <option value="{{ current_user.id }}">{{ current_user.email }}</option>
+                                        </select>
                                         <button type="submit">Assign</button>
                                     </form>
                                 {% endif %}
