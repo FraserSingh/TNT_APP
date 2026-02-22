@@ -22,23 +22,11 @@
     <nav>
         <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
         <a href="{{ url_for('admin.users') }}">Manage Users</a> |
-        <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
         <!-- Logout Link -->
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('auth.logout') }}">Logout</a>
         {% endif %}
     </nav>
-
-    <!-- Add Store Form -->
-    <h2>Add Store</h2>
-    <form method="POST">
-        <label>Name: <input type="text" name="name" required></label><br>
-        <label>Description: <textarea name="description"></textarea></label><br>
-        <label>Address: <input type="text" name="address"></label><br>
-        <label>Pickup Time: <input type="text" name="pickup_time"></label><br>
-        <label>Team: <input type="text" name="team" required></label><br>
-        <button type="submit">Add Store</button>
-    </form>
 
     <!-- CSV Import -->
     <h2>Import from CSV</h2>
@@ -61,6 +49,18 @@
             </tr>
         </thead>
         <tbody>
+            
+            <!-- Inline row to add a new store -->
+           
+             <tr>
+                <form method="POST">
+                    <td><input type="text" name="name" placeholder="New store name" required></td>
+                    <td><input type="text" name="team" placeholder="Team" required></td>
+                    <td><input type="text" name="pickup_time" placeholder="Pickup time"></td>
+                    <td><input type="text" name="description" placeholder="Description"></td>
+                    <td><button type="submit">Add Store</button></td>
+                </form>
+            </tr>
             {% for store in stores %}
             <tr>
                 <td>{{ store.name }}</td>
@@ -68,10 +68,28 @@
                 <td>{{ store.pickup_time }}</td>
                 <td>{{ store.description }}</td>
                 <td>
-                    <a href="{{ url_for('admin.edit_store', store_id=store.id) }}">Edit</a>
+                    <form method="POST" action="{{ url_for('admin.delete_store', store_id=store.id) }}">
+                        <select name="action" onchange="
+                            if (this.value === 'edit') {
+                                window.location='{{ url_for('admin.edit_store', store_id=store.id) }}';
+                                this.value='';
+                            } else if (this.value === 'delete') {
+                                if (confirm('Delete store ' + {{ store.name | tojson }} + '? This cannot be undone.')) {
+                                    this.form.submit();
+                                } else {
+                                    this.value='';
+                                }
+                            }
+                        ">
+                            <option value="">Select action</option>
+                            <option value="edit">Edit store</option>
+                            <option value="delete">Delete store</option>
+                        </select>
+                    </form>
                 </td>
             </tr>
             {% endfor %}
+
         </tbody>
     </table>
 </body>

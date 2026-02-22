@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Edit User</title>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
+        <a href="{{ url_for('admin.users') }}">Manage Users</a> |
+        <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        {% endif %}
+    </nav>
+
+    <h1>Edit User</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <label>Email:
+            <input type="email" name="email" value="{{ user.email }}" required>
+        </label><br>
+
+        <label>New Password (leave blank to keep current):
+            <input type="password" name="password">
+        </label><br>
+
+        <label>Role:
+            <select name="role">
+                <option value="volunteer" {% if user.role == 'volunteer' %}selected{% endif %}>Volunteer</option>
+                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+            </select>
+        </label><br>
+
+        <label>Team:
+            <select name="team">
+                {% for t in teams %}
+                    <option value="{{ t.name }}" {% if user.team and user.team.id == t.id %}selected{% endif %}>
+                        {{ t.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label><br>
+
+        <button type="submit">Save Changes</button>
+        <a href="{{ url_for('admin.users') }}">Cancel</a>
+    </form>
+</body>
+</html>

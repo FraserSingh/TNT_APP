@@ -6,7 +6,7 @@ from app.models import Team, User
 
 app = create_app()
 app.app_context().push()
-admin = User.query.filter_by(email="admin@example.com").first()
+admin = User.query.filter_by(email="user@example.com").first()
 if admin:
     db.session.delete(admin)
     db.session.commit()
@@ -14,7 +14,7 @@ if admin:
 team = Team.query.first()  # or create a new team if needed
 
 new_admin = User(
-    email="admin@example.com",
+    email="user@example.com",
     password=generate_password_hash("newpassword123"),
     role="admin",
     team=team,

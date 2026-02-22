@@ -1,7 +1,7 @@
 # Using app
 
-- run app locally with `uv run python -m flask --app app:create_app run --debug`
-    - or `uv run gunicorn "app:create_app()" --bind 0.0.0.0:8080 --workers 1 --threads 2`
+- run app locally with `uv run flask --app app:create_app --debug run --host 0.0.0.0 --port 8080`
+    - or `uv run gunicorn "app:create_app()" --bind 0.0.0.0:8080 --workers 1 --threads 2` for production like runs
 - login with email volunteer@example.com and password
 - user admin@example.com to view store manager page
 
