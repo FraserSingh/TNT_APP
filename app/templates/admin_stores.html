@@ -51,15 +51,16 @@
         <tbody>
             
             <!-- Inline row to add a new store -->
-           
-             <tr>
-                <form method="POST">
-                    <td><input type="text" name="name" placeholder="New store name" required></td>
-                    <td><input type="text" name="team" placeholder="Team" required></td>
-                    <td><input type="text" name="pickup_time" placeholder="Pickup time"></td>
-                    <td><input type="text" name="description" placeholder="Description"></td>
-                    <td><button type="submit">Add Store</button></td>
-                </form>
+            <tr>
+                <td colspan="5">
+                    <form method="POST">
+                        <input type="text" name="name" placeholder="New store name" required>
+                        <input type="text" name="team" placeholder="Team" required>
+                        <input type="text" name="pickup_time" placeholder="Pickup time">
+                        <input type="text" name="description" placeholder="Description">
+                        <button type="submit">Add Store</button>
+                    </form>
+                </td>
             </tr>
             {% for store in stores %}
             <tr>
@@ -69,18 +70,18 @@
                 <td>{{ store.description }}</td>
                 <td>
                     <form method="POST" action="{{ url_for('admin.delete_store', store_id=store.id) }}">
-                        <select name="action" onchange="
-                            if (this.value === 'edit') {
-                                window.location='{{ url_for('admin.edit_store', store_id=store.id) }}';
-                                this.value='';
-                            } else if (this.value === 'delete') {
-                                if (confirm('Delete store ' + {{ store.name | tojson }} + '? This cannot be undone.')) {
+                        <select name="action" onchange='
+                            if (this.value === "edit") {
+                                window.location="{{ url_for("admin.edit_store", store_id=store.id) }}";
+                                this.value="";
+                            } else if (this.value === "delete") {
+                                if (confirm("Delete store " + {{ store.name | tojson }} + "? This cannot be undone.")) {
                                     this.form.submit();
                                 } else {
-                                    this.value='';
+                                    this.value="";
                                 }
                             }
-                        ">
+                        '>
                             <option value="">Select action</option>
                             <option value="edit">Edit store</option>
                             <option value="delete">Delete store</option>
