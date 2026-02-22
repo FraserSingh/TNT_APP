@@ -39,20 +39,18 @@
         <tbody>
             <!-- Inline row to add a new user -->
             <tr>
-                <form method="POST">
-                    <td><input type="email" name="email" placeholder="Email" required></td>
-                    <td>
+                <td colspan="4">
+                    <form method="POST">
+                        <input type="email" name="email" placeholder="Email" required>
                         <select name="role">
                             <option value="volunteer">Volunteer</option>
                             <option value="admin">Admin</option>
                         </select>
-                    </td>
-                    <td><input type="text" name="team" placeholder="Team" required></td>
-                    <td>
+                        <input type="text" name="team" placeholder="Team" required>
                         <input type="password" name="password" placeholder="Password" required>
                         <button type="submit">Add User</button>
-                    </td>
-                </form>
+                    </form>
+                </td>
             </tr>
 
             {% for user in users %}
