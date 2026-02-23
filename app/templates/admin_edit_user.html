@@ -1,59 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin - Edit User</title>
-</head>
-<body>
-    <nav>
-        <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
-        <a href="{{ url_for('admin.users') }}">Manage Users</a> |
-        <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('auth.logout') }}">Logout</a>
-        {% endif %}
-    </nav>
+{% extends "base.html" %}
 
-    <h1>Edit User</h1>
+{% block title %}Admin - Edit User{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900">Edit User</h1>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <ul>
+        <div class="space-y-2">
         {% for message in messages %}
-          <li>{{ message }}</li>
+          <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ message }}</div>
         {% endfor %}
-        </ul>
+        </div>
       {% endif %}
     {% endwith %}
 
-    <form method="POST">
-        <label>Email:
-            <input type="email" name="email" value="{{ user.email }}" required>
-        </label><br>
+    <div class="bg-white shadow rounded-lg p-6">
+        <form method="POST" class="space-y-4">
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" name="email" value="{{ user.email }}" required class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
 
-        <label>New Password (leave blank to keep current):
-            <input type="password" name="password">
-        </label><br>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">New Password (leave blank to keep current)</label>
+                <input type="password" name="password" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
 
-        <label>Role:
-            <select name="role">
-                <option value="volunteer" {% if user.role == 'volunteer' %}selected{% endif %}>Volunteer</option>
-                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
-            </select>
-        </label><br>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Role</label>
+                <select name="role" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <option value="volunteer" {% if user.role == 'volunteer' %}selected{% endif %}>Volunteer</option>
+                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                </select>
+            </div>
 
-        <label>Team:
-            <select name="team">
-                {% for t in teams %}
-                    <option value="{{ t.name }}" {% if user.team and user.team.id == t.id %}selected{% endif %}>
-                        {{ t.name }}
-                    </option>
-                {% endfor %}
-            </select>
-        </label><br>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Team</label>
+                <select name="team" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    {% for t in teams %}
+                        <option value="{{ t.name }}" {% if user.team and user.team.id == t.id %}selected{% endif %}>
+                            {{ t.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <button type="submit">Save Changes</button>
-        <a href="{{ url_for('admin.users') }}">Cancel</a>
-    </form>
-</body>
-</html>
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Save Changes</button>
+                <a href="{{ url_for('admin.users') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

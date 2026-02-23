@@ -1,86 +1,77 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin - Manage Users</title>
-</head>
-<body>
-    <!-- Top navigation -->
-    <nav>
-        <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
-        <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
-        <!-- Logout Link -->
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('auth.logout') }}">Logout</a>
-        {% endif %}
-    </nav>
-    
-    <h1>Manage Users</h1>
+{% extends "base.html" %}
+
+{% block title %}Admin - Manage Users{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900">Manage Users</h1>
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <ul>
+        <div class="space-y-2">
         {% for message in messages %}
-          <li>{{ message }}</li>
+          <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ message }}</div>
         {% endfor %}
-        </ul>
+        </div>
       {% endif %}
     {% endwith %}
 
-    <h2>Users</h2>
-    <table border="1" cellpadding="5">
-        <thead>
-            <tr>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Team</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Inline row to add a new user -->
-            <tr>
-                <td colspan="4">
-                    <form method="POST">
-                        <input type="email" name="email" placeholder="Email" required>
-                        <select name="role">
-                            <option value="volunteer">Volunteer</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                        <input type="text" name="team" placeholder="Team" required>
-                        <input type="password" name="password" placeholder="Password" required>
-                        <button type="submit">Add User</button>
-                    </form>
-                </td>
-            </tr>
+    <div class="bg-white shadow rounded-lg p-4">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Add User</h2>
+        <form method="POST" class="grid gap-3 md:grid-cols-4">
+            <input type="email" name="email" placeholder="Email" required class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <select name="role" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="volunteer">Volunteer</option>
+                <option value="admin">Admin</option>
+            </select>
+            <input type="text" name="team" placeholder="Team" required class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <input type="password" name="password" placeholder="Password" required class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <div class="md:col-span-4">
+                <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Add User</button>
+            </div>
+        </form>
+    </div>
 
-            {% for user in users %}
-            <tr>
-                <td>{{ user.email }}</td>
-                <td>{{ user.role }}</td>
-                <td>{{ user.team.name }}</td>
-                <td>
-                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}">
-                        <select name="action" onchange='
-                            if (this.value === "edit") {
-                                window.location="{{ url_for("admin.edit_user", user_id=user.id) }}";
-                                this.value="";
-                            } else if (this.value === "delete") {
-                                if (confirm({{ ("Delete user " ~ user.email ~ "? This cannot be undone.") | tojson }})) {
-                                    this.form.submit();
-                                } else {
+    <div class="bg-white shadow rounded-lg overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Role</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Team</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white">
+                {% for user in users %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm text-gray-800 break-all">{{ user.email }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ user.role }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ user.team.name if user.team else "-" }}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}">
+                            <select name="action" class="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" onchange='
+                                if (this.value === "edit") {
+                                    window.location="{{ url_for("admin.edit_user", user_id=user.id) }}";
                                     this.value="";
+                                } else if (this.value === "delete") {
+                                    if (confirm({{ ("Delete user " ~ user.email ~ "? This cannot be undone.") | tojson }})) {
+                                        this.form.submit();
+                                    } else {
+                                        this.value="";
+                                    }
                                 }
-                            }
-                        '>
-                            <option value="">Select action</option>
-                            <option value="edit">Edit user</option>
-                            <option value="delete">Delete user</option>
-                        </select>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+                            '>
+                                <option value="">Select action</option>
+                                <option value="edit">Edit user</option>
+                                <option value="delete">Delete user</option>
+                            </select>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

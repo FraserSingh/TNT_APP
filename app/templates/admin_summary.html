@@ -1,108 +1,115 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin - Dashboard</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <h1>Admin Dashboard</h1>
+{% block title %}Admin - Dashboard{% endblock %}
 
-    <nav>
-        <a href="{{ url_for('rota.rota') }}">Back to Rota</a> |
-        <a href="{{ url_for('admin.users') }}">Manage Users</a> |
-        <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
-        <a href="{{ url_for('auth.logout') }}">Logout</a>
-    </nav>
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
 
-    <p>Total Users: {{ users|length }}</p>
-    <p>Total Stores: {{ stores|length }}</p>
-    <p>Unassigned shifts: {{ shifts|length }}</p>
+    <div class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-lg bg-white p-4 shadow">
+            <p class="text-sm text-gray-500">Total Users</p>
+            <p class="text-2xl font-semibold text-gray-900">{{ users|length }}</p>
+        </div>
+        <div class="rounded-lg bg-white p-4 shadow">
+            <p class="text-sm text-gray-500">Total Stores</p>
+            <p class="text-2xl font-semibold text-gray-900">{{ stores|length }}</p>
+        </div>
+        <div class="rounded-lg bg-white p-4 shadow">
+            <p class="text-sm text-gray-500">Unassigned Shifts</p>
+            <p class="text-2xl font-semibold text-gray-900">{{ shifts|length }}</p>
+        </div>
+    </div>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <ul>
+        <div class="space-y-2">
         {% for message in messages %}
-          <li>{{ message }}</li>
+          <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ message }}</div>
         {% endfor %}
-        </ul>
+        </div>
       {% endif %}
     {% endwith %}
 
-    <h2>Stores with unassigned shifts</h2>
-
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Next shift</th>
-
-                <th>
-                    <a href="{{ url_for('rota.admin_summary', sort='store', dir=dir) }}">
-                        Store
-                    </a>
-                    {% if request.args.get('sort') == 'store' %}
-                        {{ '↑' if request.args.get('dir') == 'asc' else '↓' }}
-                    {% endif %}
-                </th>
-
-                <th>
-                    <a href="{{ url_for('rota.admin_summary', sort='team', dir=dir) }}">
-                        Team
-                    </a>
-                    {% if request.args.get('sort') == 'team' %}
-                        {{ '↑' if request.args.get('dir') == 'asc' else '↓' }}
-                    {% endif %}
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for store, shift_date in stores_uncovered %}
+    <div class="bg-white shadow rounded-lg overflow-x-auto">
+        <div class="border-b border-gray-200 px-4 py-3">
+            <h2 class="text-lg font-semibold text-gray-900">Stores with unassigned shifts</h2>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
                 <tr>
-                    <td>{{ shift_date.strftime('%a %d/%m') }}</td>
-                    <td>{{ store.name }}</td>
-                    <td>{{ store.team.name }}</td>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Next shift</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                        <a href="{{ url_for('rota.admin_summary', sort='store', dir=dir) }}" class="text-indigo-600 hover:text-indigo-800">
+                            Store
+                        </a>
+                        {% if request.args.get('sort') == 'store' %}
+                            <span class="ml-1 text-gray-500">{{ '↑' if request.args.get('dir') == 'asc' else '↓' }}</span>
+                        {% endif %}
+                    </th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                        <a href="{{ url_for('rota.admin_summary', sort='team', dir=dir) }}" class="text-indigo-600 hover:text-indigo-800">
+                            Team
+                        </a>
+                        {% if request.args.get('sort') == 'team' %}
+                            <span class="ml-1 text-gray-500">{{ '↑' if request.args.get('dir') == 'asc' else '↓' }}</span>
+                        {% endif %}
+                    </th>
                 </tr>
-            {% else %}
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white">
+                {% for store, shift_date in stores_uncovered %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-700">{{ shift_date.strftime('%a %d/%m') }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">{{ store.name }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">{{ store.team.name if store.team else '-' }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="px-4 py-6 text-center text-sm text-gray-500">No uncovered stores 🎉</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white shadow rounded-lg overflow-x-auto">
+        <div class="border-b border-gray-200 px-4 py-3">
+            <h2 class="text-lg font-semibold text-gray-900">Unassigned Shifts</h2>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
                 <tr>
-                    <td colspan="3">No uncovered stores 🎉</td>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Store</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Pickup Time</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Team</th>
                 </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white">
+                {% for shift in shifts %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-700">{{ shift.date.strftime('%a %d/%m') }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">{{ shift.store.name }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">{{ shift.store.pickup_time }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">{{ shift.store.team.name if shift.store.team else '-' }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="px-4 py-6 text-center text-sm text-gray-500">No unassigned shifts 🎉</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white shadow rounded-lg p-4">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Users</h2>
+        <ul class="space-y-1 text-sm text-gray-700">
+            {% for user in users %}
+                <li>{{ user.email }} – {{ user.role }}</li>
             {% endfor %}
-        </tbody>
-    </table>
-
-    <h2>Unassigned Shifts</h2>
-
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Store</th>
-                <th>Pickup Time</th>
-                <th>Team</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for shift in shifts %}
-                <tr>
-                    <td>{{ shift.date.strftime('%a %d/%m') }}</td>
-                    <td>{{ shift.store.name }}</td>
-                    <td>{{ shift.store.pickup_time }}</td>
-                    <td>{{ shift.store.team.name }}</td>
-                </tr>
-            {% else %}
-                <tr>
-                    <td colspan="4">No unassigned shifts 🎉</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h2>Users</h2>
-    <ul>
-        {% for user in users %}
-            <li>{{ user.email }} – {{ user.role }}</li>
-        {% endfor %}
-    </ul>
-
-</body>
-</html>
+        </ul>
+    </div>
+</div>
+{% endblock %}

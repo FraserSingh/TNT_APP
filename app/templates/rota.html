@@ -1,123 +1,124 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Rota</title>
-</head>
-<body>
-    <h1>Volunteer Rota</h1>
-    <p>
-        <strong>Current Week:</strong>
-        {{ week_start.strftime('%A %d %b %Y') }} to {{ week_end.strftime('%A %d %b %Y') }}
-    </p>
+{% extends "base.html" %}
+
+{% block title %}Rota{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Volunteer Rota</h1>
+            <p class="text-sm text-gray-600">
+                Current Week: {{ week_start.strftime('%A %d %b %Y') }} to {{ week_end.strftime('%A %d %b %Y') }}
+            </p>
+            <p class="text-sm text-gray-600">
+                {{ current_user.email }} ({{ current_user.team.name if current_user.team else "No Team" }})
+            </p>
+        </div>
+
+        <div class="text-sm text-gray-600 md:text-right">
+            <p>
+                <span class="font-semibold">Stores loaded:</span> {{ store_count }}
+                ({{ real_store_count }} real, {{ dummy_store_count }} dummy)
+            </p>
+            {% if show_dummy_stores %}
+                <a href="{{ url_for('rota.rota', show_dummy=0) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                    Hide dummy stores
+                </a>
+            {% else %}
+                <a href="{{ url_for('rota.rota', show_dummy=1) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                    Show dummy stores
+                </a>
+            {% endif %}
+        </div>
+    </div>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <ul>
+        <div class="space-y-2">
         {% for message in messages %}
-          <li>{{ message }}</li>
+          <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ message }}</div>
         {% endfor %}
-        </ul>
+        </div>
       {% endif %}
     {% endwith %}
 
-    <p>
-        Welcome, {{ current_user.email }}
-        ({{ current_user.team.name if current_user.team else "No Team" }})
-    </p>
-
-    <nav>
-        {% if current_user.role == 'admin' %}
-            <a href="{{ url_for('admin.stores') }}">Manage Stores</a> |
-            <a href="{{ url_for('admin.users') }}">Manage Users</a> |
-            <a href="{{ url_for('rota.admin_summary') }}">Admin Dashboard</a> |
-        {% endif %}
-        <a href="{{ url_for('auth.logout') }}">Logout</a>
-    </nav>
-
-    <p>
-        <strong>Stores loaded:</strong> {{ store_count }}
-        ({{ real_store_count }} real, {{ dummy_store_count }} dummy)
-        |
-        {% if show_dummy_stores %}
-            <a href="{{ url_for('rota.rota', show_dummy=0) }}">Hide dummy stores</a>
-        {% else %}
-            <a href="{{ url_for('rota.rota', show_dummy=1) }}">Show dummy stores</a>
-        {% endif %}
-    </p>
-
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Store</th>
-                {% for i in range(dates|length) %}
-                    <th>{{ weekday_names[i] }}<br><small>{{ dates[i].strftime('%d/%m') }}</small></th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for store in stores %}
+    <div class="bg-white shadow rounded-lg overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
                 <tr>
-                    <td>
-                        {{ store.name }}<br>
-                        <small>{{ store.pickup_time }}</small>
-                    </td>
-
-                    {% for date in dates %}
-                        <td>
-                            {% set shift = grid[store][date] %}
-
-                            {% if shift.volunteer %}
-                                {{ shift.volunteer.email }}
-
-                                {% if current_user.role == 'admin' or shift.volunteer == current_user %}
-                                    <form method="POST"
-                                          action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}"
-                                          style="display:inline;">
-                                        <button type="submit">Unassign</button>
-                                    </form>
-                                {% endif %}
-
-                            {% else %}
-
-                                {% if current_user.role == 'admin' %}
-                                    <form method="POST"
-                                          action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}"
-                                          style="display:inline;">
-                                        <select name="user_id">
-                                            <option value="">Unassigned</option> <!-- Added option for unassigned -->
-                                            {% for u in users %}
-                                                <option value="{{ u.id }}">
-                                                    {{ u.email }}
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-                                        <button type="submit">Assign</button>
-                                    </form>
-                                {% else %}
-                                    <form method="POST"
-                                          action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}"
-                                          style="display:inline;">
-                                        <select name="user_id">
-                                            <option value="">Unassigned</option>
-                                            <option value="{{ current_user.id }}">{{ current_user.email }}</option>
-                                        </select>
-                                        <button type="submit">Assign</button>
-                                    </form>
-                                {% endif %}
-
-                            {% endif %}
-                        </td>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Store</th>
+                    {% for i in range(dates|length) %}
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 whitespace-nowrap">
+                            {{ weekday_names[i] }}<br><span class="text-xs text-gray-500">{{ dates[i].strftime('%d/%m') }}</span>
+                        </th>
                     {% endfor %}
-
                 </tr>
-            {% else %}
-                <tr>
-                    <td colspan="8">No stores to display for this view. Use "Show dummy stores" above.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white">
+                {% for store in stores %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-4 align-top">
+                            <div class="font-medium text-gray-900">{{ store.name }}</div>
+                            <div class="text-sm text-gray-500">{{ store.pickup_time }}</div>
+                        </td>
 
-</body>
-</html>
+                        {% for date in dates %}
+                            <td class="px-4 py-4 align-top text-sm">
+                                {% set shift = grid[store][date] %}
+
+                                {% if shift.volunteer %}
+                                    <div class="space-y-2">
+                                        <div class="text-gray-800 break-all">{{ shift.volunteer.email }}</div>
+
+                                        {% if current_user.role == 'admin' or shift.volunteer == current_user %}
+                                            <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}">
+                                                <button type="submit" class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-200">
+                                                    Unassign
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+
+                                {% else %}
+
+                                    {% if current_user.role == 'admin' %}
+                                        <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}" class="space-y-2">
+                                            <select name="user_id" class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                                <option value="">Unassigned</option>
+                                                {% for u in users %}
+                                                    <option value="{{ u.id }}">{{ u.email }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <button type="submit" class="inline-flex items-center rounded-md bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200">
+                                                Assign
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}" class="space-y-2">
+                                            <select name="user_id" class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                                <option value="">Unassigned</option>
+                                                <option value="{{ current_user.id }}">{{ current_user.email }}</option>
+                                            </select>
+                                            <button type="submit" class="inline-flex items-center rounded-md bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200">
+                                                Assign
+                                            </button>
+                                        </form>
+                                    {% endif %}
+
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-6 text-center text-sm text-gray-500">
+                            No stores to display for this view. Use "Show dummy stores" above.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

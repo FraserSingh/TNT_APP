@@ -1,18 +1,49 @@
-<h1>Edit Store</h1>
-<form method="POST">
-    <label>Name: <input type="text" name="name" value="{{ store.name }}" required></label><br>
-    <label>Description: <textarea name="description">{{ store.description }}</textarea></label><br>
-    <label>Address: <input type="text" name="address" value="{{ store.address }}"></label><br>
-    <label>Pickup Time: <input type="text" name="pickup_time" value="{{ store.pickup_time }}"></label><br>
-    <label>Team: 
-        <select name="team">
-            {% for team in teams %}
-            <option value="{{ team.name }}" {% if team.id == store.team.id %}selected{% endif %}>
-                {{ team.name }}
-            </option>
-            {% endfor %}
-        </select>
-    </label><br>
-    <button type="submit">Save</button>
-</form>
-<a href="{{ url_for('admin.stores') }}">Back to Stores</a>
+{% extends "base.html" %}
+
+{% block title %}Edit Store{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900">Edit Store</h1>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <form method="POST" class="space-y-4">
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" name="name" value="{{ store.name }}" required class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Description</label>
+                <textarea name="description" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">{{ store.description }}</textarea>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Address</label>
+                <input type="text" name="address" value="{{ store.address }}" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Pickup Time</label>
+                <input type="text" name="pickup_time" value="{{ store.pickup_time }}" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Team</label>
+                <select name="team" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    {% for team in teams %}
+                    <option value="{{ team.name }}" {% if store.team and team.id == store.team.id %}selected{% endif %}>
+                        {{ team.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Save</button>
+                <a href="{{ url_for('admin.stores') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Back to Stores</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
