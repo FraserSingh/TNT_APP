@@ -9,11 +9,13 @@ dependencies = [
     "commitizen>=4.13.6",
     "flask>=3.1.2",
     "flask-login>=0.6.3",
+    "flask-migrate>=4.1.0",
     "flask-sqlalchemy>=3.1.1",
     "pre-commit>=4.5.1",
+    "psycopg[binary]>=3.2.1",
     "werkzeug>=3.1.5",
-    "gunicorn>=21.2.0"     , 
-    "python-dotenv>=1.0.0"  ,
+    "gunicorn>=21.2.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [tool.ruff.lint]
