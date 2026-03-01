@@ -66,17 +66,17 @@ def rota():
     ensure_dummy_stores()
 
     today = datetime.now(timezone.utc).date()
-    start_of_week = today - timedelta(days=today.weekday())
-    dates = [start_of_week + timedelta(days=i) for i in range(7)]
-    weekday_names = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    ]
+    window_mode = request.args.get("window", "week")
+
+    if window_mode == "next7":
+        # Rolling window starting today
+        start_date = today
+    else:
+        # Calendar week (Monday-Sunday containing today)
+        start_date = today - timedelta(days=today.weekday())
+
+    dates = [start_date + timedelta(days=i) for i in range(7)]
+    weekday_names = [d.strftime("%A") for d in dates]
     show_dummy_stores = request.args.get("show_dummy", "1") == "1"
 
     all_stores = Store.query.order_by(Store.name.asc()).all()
@@ -152,6 +152,7 @@ def rota():
         dummy_store_count=dummy_count,
         real_store_count=real_count,
         show_dummy_stores=show_dummy_stores,
+        window_mode=window_mode,
         users=users,
         week_start=dates[0],
         week_end=dates[-1],

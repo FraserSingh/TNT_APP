@@ -8,7 +8,11 @@
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Volunteer Rota</h1>
             <p class="text-sm text-gray-600">
-                <span class="font-medium">Current week:</span>
+                {% if window_mode == 'next7' %}
+                    <span class="font-medium">Next 7 days:</span>
+                {% else %}
+                    <span class="font-medium">Current week:</span>
+                {% endif %}
                 {{ week_start.strftime('%A %d %b %Y') }}
                 &ndash;
                 {{ week_end.strftime('%A %d %b %Y') }}
@@ -19,17 +23,30 @@
             </p>
         </div>
 
-        <div class="text-sm text-gray-600">
-            <span class="font-medium">Stores loaded:</span>
-            {{ store_count }}
-            <span class="text-gray-400">&middot;</span>
-            {{ real_store_count }} real, {{ dummy_store_count }} dummy
-            <span class="text-gray-400">&middot;</span>
-            {% if show_dummy_stores %}
-                <a href="{{ url_for('rota.rota', show_dummy=0) }}" class="text-indigo-600 hover:text-indigo-800">Hide dummy stores</a>
-            {% else %}
-                <a href="{{ url_for('rota.rota', show_dummy=1) }}" class="text-indigo-600 hover:text-indigo-800">Show dummy stores</a>
-            {% endif %}
+        <div class="flex flex-col items-start gap-2 text-sm text-gray-600 md:items-end">
+            <div>
+                <span class="font-medium">Stores loaded:</span>
+                {{ store_count }}
+                <span class="text-gray-400">&middot;</span>
+                {{ real_store_count }} real, {{ dummy_store_count }} dummy
+                <span class="text-gray-400">&middot;</span>
+                {% if show_dummy_stores %}
+                    <a href="{{ url_for('rota.rota', show_dummy=0, window=window_mode) }}" class="text-indigo-600 hover:text-indigo-800">Hide dummy stores</a>
+                {% else %}
+                    <a href="{{ url_for('rota.rota', show_dummy=1, window=window_mode) }}" class="text-indigo-600 hover:text-indigo-800">Show dummy stores</a>
+                {% endif %}
+            </div>
+
+            <div class="inline-flex rounded-full bg-gray-100 p-0.5 text-xs font-medium text-gray-600">
+                <a href="{{ url_for('rota.rota', window='week', show_dummy=1 if show_dummy_stores else 0) }}"
+                   class="px-3 py-1 rounded-full {{ 'bg-white shadow text-gray-900' if window_mode != 'next7' else 'hover:text-gray-900' }}">
+                    This week
+                </a>
+                <a href="{{ url_for('rota.rota', window='next7', show_dummy=1 if show_dummy_stores else 0) }}"
+                   class="px-3 py-1 rounded-full {{ 'bg-white shadow text-gray-900' if window_mode == 'next7' else 'hover:text-gray-900' }}">
+                    Next 7 days
+                </a>
+            </div>
         </div>
     </div>
 
