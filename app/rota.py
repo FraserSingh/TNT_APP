@@ -7,7 +7,7 @@ from sqlalchemy import asc, desc, func
 
 from .extensions import db
 from .models import Shift, Store, Team, User
-from .shift_utils import create_unassigned_shifts_for_store
+from .shift_utils import classify_coverage, create_unassigned_shifts_for_store
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,41 @@ def rota():
 
     db.session.commit()
 
+    # Build 14-day coverage from today using existing Shift rows only.
+    window_days = 14
+    window_start = today
+    window_end = window_start + timedelta(days=window_days)
+
+    window_dates = [window_start + timedelta(days=i) for i in range(window_days)]
+
+    coverage_query = (
+        db.session.query(
+            Shift.date.label("date"),
+            func.count(Shift.id).label("total"),
+            func.count(Shift.volunteer_id).label("assigned"),
+        )
+        .filter(Shift.date >= window_start, Shift.date < window_end)
+        .group_by(Shift.date)
+        .all()
+    )
+
+    coverage_map = {}
+    for row in coverage_query:
+        coverage_map[row.date] = {"total": row.total, "assigned": row.assigned}
+
+    coverage_days = []
+    for date in window_dates:
+        stats = coverage_map.get(date, {"total": 0, "assigned": 0})
+        status = classify_coverage(stats["assigned"], stats["total"])
+        coverage_days.append(
+            {
+                "date": date,
+                "total": stats["total"],
+                "assigned": stats["assigned"],
+                "status": status,
+            }
+        )
+
     users = User.query.all()
 
     return render_template(
@@ -121,6 +156,7 @@ def rota():
         week_start=dates[0],
         week_end=dates[-1],
         weekday_names=weekday_names,
+        coverage_days=coverage_days,
     )
 
 
@@ -166,6 +202,47 @@ def admin_summary():
     users = User.query.all()
     stores = Store.query.all()
 
+    # 14-day coverage summary from today for the admin dashboard.
+    today = datetime.now(timezone.utc).date()
+    window_days = 14
+    window_start = today
+    window_end = window_start + timedelta(days=window_days)
+
+    window_dates = [window_start + timedelta(days=i) for i in range(window_days)]
+
+    coverage_query = (
+        db.session.query(
+            Shift.date.label("date"),
+            func.count(Shift.id).label("total"),
+            func.count(Shift.volunteer_id).label("assigned"),
+        )
+        .filter(Shift.date >= window_start, Shift.date < window_end)
+        .group_by(Shift.date)
+        .all()
+    )
+
+    coverage_map = {}
+    for row in coverage_query:
+        coverage_map[row.date] = {"total": row.total, "assigned": row.assigned}
+
+    coverage_days = []
+    total_unassigned_14d = 0
+
+    for date in window_dates:
+        stats = coverage_map.get(date, {"total": 0, "assigned": 0})
+        status = classify_coverage(stats["assigned"], stats["total"])
+        unassigned = stats["total"] - stats["assigned"]
+        total_unassigned_14d += max(unassigned, 0)
+        coverage_days.append(
+            {
+                "date": date,
+                "total": stats["total"],
+                "assigned": stats["assigned"],
+                "unassigned": unassigned,
+                "status": status,
+            }
+        )
+
     return render_template(
         "admin_summary.html",
         shifts=shifts_uncovered,
@@ -173,6 +250,8 @@ def admin_summary():
         users=users,
         stores=stores,
         dir=next_dir,
+        coverage_days=coverage_days,
+        total_unassigned_14d=total_unassigned_14d,
     )
 
 

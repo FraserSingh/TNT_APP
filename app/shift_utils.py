@@ -23,3 +23,21 @@ def create_unassigned_shifts_for_store(store, days: int = DEFAULT_SHIFT_DAYS) ->
                 volunteer_id=None,
             )
         )
+
+
+def classify_coverage(assigned_shifts: int, total_shifts: int) -> str:
+    """Return a RAG/grey status string based on coverage.
+
+    - If there are no shifts on a day, return "grey".
+    - Otherwise there are only two coverage states:
+        * "green" when all shifts are covered (assigned == total > 0)
+        * "red"   when at least one shift is uncovered (0 <= assigned < total)
+    """
+
+    if total_shifts <= 0:
+        return "grey"
+
+    if assigned_shifts >= total_shifts:
+        return "green"
+
+    return "red"

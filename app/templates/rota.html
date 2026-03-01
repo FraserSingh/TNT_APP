@@ -4,30 +4,31 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+    <div class="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Volunteer Rota</h1>
             <p class="text-sm text-gray-600">
-                Current Week: {{ week_start.strftime('%A %d %b %Y') }} to {{ week_end.strftime('%A %d %b %Y') }}
+                <span class="font-medium">Current week:</span>
+                {{ week_start.strftime('%A %d %b %Y') }}
+                &ndash;
+                {{ week_end.strftime('%A %d %b %Y') }}
             </p>
-            <p class="text-sm text-gray-600">
-                {{ current_user.email }} ({{ current_user.team.name if current_user.team else "No Team" }})
+            <p class="mt-1 text-sm text-gray-600">
+                Welcome, <span class="font-medium">{{ current_user.email }}</span>
+                ({{ current_user.team.name if current_user.team else "No Team" }})
             </p>
         </div>
 
-        <div class="text-sm text-gray-600 md:text-right">
-            <p>
-                <span class="font-semibold">Stores loaded:</span> {{ store_count }}
-                ({{ real_store_count }} real, {{ dummy_store_count }} dummy)
-            </p>
+        <div class="text-sm text-gray-600">
+            <span class="font-medium">Stores loaded:</span>
+            {{ store_count }}
+            <span class="text-gray-400">&middot;</span>
+            {{ real_store_count }} real, {{ dummy_store_count }} dummy
+            <span class="text-gray-400">&middot;</span>
             {% if show_dummy_stores %}
-                <a href="{{ url_for('rota.rota', show_dummy=0) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
-                    Hide dummy stores
-                </a>
+                <a href="{{ url_for('rota.rota', show_dummy=0) }}" class="text-indigo-600 hover:text-indigo-800">Hide dummy stores</a>
             {% else %}
-                <a href="{{ url_for('rota.rota', show_dummy=1) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
-                    Show dummy stores
-                </a>
+                <a href="{{ url_for('rota.rota', show_dummy=1) }}" class="text-indigo-600 hover:text-indigo-800">Show dummy stores</a>
             {% endif %}
         </div>
     </div>
@@ -35,90 +36,135 @@
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="space-y-2">
-        {% for message in messages %}
-          <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ message }}</div>
-        {% endfor %}
+            {% for message in messages %}
+                <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ message }}</div>
+            {% endfor %}
         </div>
       {% endif %}
     {% endwith %}
 
-    <div class="bg-white shadow rounded-lg overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Store</th>
-                    {% for i in range(dates|length) %}
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 whitespace-nowrap">
-                            {{ weekday_names[i] }}<br><span class="text-xs text-gray-500">{{ dates[i].strftime('%d/%m') }}</span>
-                        </th>
+    {% if coverage_days %}
+        <section aria-label="Coverage for the next 14 days" class="space-y-2">
+            <div class="text-sm font-medium text-gray-700">Upcoming 14 days coverage</div>
+            <div class="flex flex-col gap-1">
+                {% set first_row = coverage_days[:7] %}
+                {% set second_row = coverage_days[7:] %}
+
+                <div class="flex gap-1">
+                    {% for day in first_row %}
+                        <div
+                            class="flex h-10 w-10 flex-col items-center justify-center rounded border text-xs
+                                   {% if day.status == 'red' %} bg-red-100 border-red-400 text-red-900
+                                   {% elif day.status == 'green' %} bg-emerald-100 border-emerald-400 text-emerald-900
+                                   {% else %} bg-gray-100 border-gray-300 text-gray-600{% endif %}"
+                            title="{{ day.date.strftime('%a %d %b') }} - {{ day.assigned }} of {{ day.total }} shifts covered">
+                            <span>{{ day.date.strftime('%d') }}</span>
+                            <span>{{ day.date.strftime('%a')[:1] }}</span>
+                        </div>
                     {% endfor %}
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 bg-white">
-                {% for store in stores %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-4 align-top">
-                            <div class="font-medium text-gray-900">{{ store.name }}</div>
-                            <div class="text-sm text-gray-500">{{ store.pickup_time }}</div>
-                        </td>
+                </div>
 
-                        {% for date in dates %}
-                            <td class="px-4 py-4 align-top text-sm">
+                <div class="flex gap-1">
+                    {% for day in second_row %}
+                        <div
+                            class="flex h-10 w-10 flex-col items-center justify-center rounded border text-xs
+                                   {% if day.status == 'red' %} bg-red-100 border-red-400 text-red-900
+                                   {% elif day.status == 'green' %} bg-emerald-100 border-emerald-400 text-emerald-900
+                                   {% else %} bg-gray-100 border-gray-300 text-gray-600{% endif %}"
+                            title="{{ day.date.strftime('%a %d %b') }} - {{ day.assigned }} of {{ day.total }} shifts covered">
+                            <span>{{ day.date.strftime('%d') }}</span>
+                            <span>{{ day.date.strftime('%a')[:1] }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-red-100 border border-red-400"></span>Uncovered day (at least one gap)</span>
+                <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-emerald-100 border border-emerald-400"></span>Fully covered day</span>
+                <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-gray-100 border border-gray-300"></span>No shifts</span>
+            </div>
+        </section>
+    {% endif %}
+
+    <section class="space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-lg font-semibold text-gray-900">Weekly rota</h2>
+            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-red-50 border border-red-200"></span>Unassigned shift</span>
+                <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-emerald-50 border border-emerald-200"></span>Assigned shift</span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg bg-white shadow">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="whitespace-nowrap px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Store</th>
+                        {% for i in range(dates|length) %}
+                            <th class="whitespace-nowrap px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                {{ weekday_names[i] }}<br>
+                                <span class="font-normal text-gray-500">{{ dates[i].strftime('%d/%m') }}</span>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    {% for store in stores %}
+                        <tr class="align-top">
+                            <td class="whitespace-nowrap px-4 py-2 text-sm font-medium text-gray-900">
+                                <div>{{ store.name }}</div>
+                                <div class="text-xs text-gray-500">{{ store.pickup_time }}</div>
+                            </td>
+
+                            {% for date in dates %}
                                 {% set shift = grid[store][date] %}
-
-                                {% if shift.volunteer %}
-                                    <div class="space-y-2">
-                                        <div class="text-gray-800 break-all">{{ shift.volunteer.email }}</div>
+                                <td class="px-3 py-2 align-top text-xs
+                                           {% if shift.volunteer %} bg-emerald-50 border-l border-emerald-200
+                                           {% else %} bg-red-200 border-l border-red-400{% endif %}">
+                                    {% if shift.volunteer %}
+                                        <div class="mb-1 text-gray-800">{{ shift.volunteer.email }}</div>
 
                                         {% if current_user.role == 'admin' or shift.volunteer == current_user %}
-                                            <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}">
-                                                <button type="submit" class="inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-200">
-                                                    Unassign
-                                                </button>
+                                            <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}" class="inline">
+                                                <button type="submit" class="rounded-md border border-gray-300 px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50">Unassign</button>
                                             </form>
                                         {% endif %}
-                                    </div>
 
-                                {% else %}
-
-                                    {% if current_user.role == 'admin' %}
-                                        <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}" class="space-y-2">
-                                            <select name="user_id" class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                                                <option value="">Unassigned</option>
-                                                {% for u in users %}
-                                                    <option value="{{ u.id }}">{{ u.email }}</option>
-                                                {% endfor %}
-                                            </select>
-                                            <button type="submit" class="inline-flex items-center rounded-md bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200">
-                                                Assign
-                                            </button>
-                                        </form>
                                     {% else %}
-                                        <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}" class="space-y-2">
-                                            <select name="user_id" class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                                                <option value="">Unassigned</option>
-                                                <option value="{{ current_user.id }}">{{ current_user.email }}</option>
-                                            </select>
-                                            <button type="submit" class="inline-flex items-center rounded-md bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200">
-                                                Assign
-                                            </button>
-                                        </form>
+
+                                        {% if current_user.role == 'admin' %}
+                                            <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}" class="space-x-1">
+                                                <select name="user_id" class="rounded-md border border-gray-300 px-1.5 py-0.5 text-[11px] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                                    <option value="">Unassigned</option>
+                                                    {% for u in users %}
+                                                        <option value="{{ u.id }}">{{ u.email }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <button type="submit" class="rounded-md bg-indigo-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-indigo-700">Assign</button>
+                                            </form>
+                                        {% else %}
+                                            <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}" class="space-x-1">
+                                                <select name="user_id" class="rounded-md border border-gray-300 px-1.5 py-0.5 text-[11px] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                                    <option value="">Unassigned</option>
+                                                    <option value="{{ current_user.id }}">{{ current_user.email }}</option>
+                                                </select>
+                                                <button type="submit" class="rounded-md bg-indigo-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-indigo-700">Assign</button>
+                                            </form>
+                                        {% endif %}
+
                                     {% endif %}
-
-                                {% endif %}
-                            </td>
-                        {% endfor %}
-
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="8" class="px-4 py-6 text-center text-sm text-gray-500">
-                            No stores to display for this view. Use "Show dummy stores" above.
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="px-4 py-4 text-center text-sm text-gray-500">No stores to display for this view. Use "Show dummy stores" above.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 {% endblock %}
