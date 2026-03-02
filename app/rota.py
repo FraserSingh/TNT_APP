@@ -203,9 +203,9 @@ def admin_summary():
     users = User.query.all()
     stores = Store.query.all()
 
-    # 14-day coverage summary from today for the admin dashboard.
+    # Coverage summary from today for the admin dashboard (approx. next 2 months).
     today = datetime.now(timezone.utc).date()
-    window_days = 14
+    window_days = 60
     window_start = today
     window_end = window_start + timedelta(days=window_days)
 
@@ -244,6 +244,11 @@ def admin_summary():
             }
         )
 
+    # Chunk coverage days into rows of 7 for calendar-like display.
+    coverage_rows = []
+    for i in range(0, len(coverage_days), 7):
+        coverage_rows.append(coverage_days[i : i + 7])
+
     return render_template(
         "admin_summary.html",
         shifts=shifts_uncovered,
@@ -252,6 +257,7 @@ def admin_summary():
         stores=stores,
         dir=next_dir,
         coverage_days=coverage_days,
+        coverage_rows=coverage_rows,
         total_unassigned_14d=total_unassigned_14d,
     )
 

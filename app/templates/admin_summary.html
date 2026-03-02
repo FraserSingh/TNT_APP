@@ -12,7 +12,6 @@
         <div class="text-sm text-gray-600 space-y-0.5">
             <p><span class="font-medium">Total users:</span> {{ users|length }}</p>
             <p><span class="font-medium">Total stores:</span> {{ stores|length }}</p>
-            <p><span class="font-medium">Unassigned shifts (all time):</span> {{ shifts|length }}</p>
             <p><span class="font-medium">Unassigned shifts (next 14 days):</span> {{ total_unassigned_14d }}</p>
         </div>
     </div>
@@ -27,56 +26,42 @@
       {% endif %}
     {% endwith %}
 
-    {% if coverage_days %}
-        <section class="space-y-2" aria-label="Coverage for the next 14 days">
-            <div class="flex items-center justify-between gap-2">
-                <h2 class="text-lg font-semibold text-gray-900">Upcoming 14 days coverage</h2>
-            </div>
+    <div class="grid gap-6 md:grid-cols-2 md:items-start">
+        {% if coverage_rows %}
+            <section class="space-y-2" aria-label="Coverage for the next two months">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 class="text-lg font-semibold text-gray-900">Upcoming coverage (≈ 2 months)</h2>
+                </div>
 
-            <div class="flex flex-col gap-1">
-                {% set first_row = coverage_days[:7] %}
-                {% set second_row = coverage_days[7:] %}
-
-                <div class="flex gap-1">
-                    {% for day in first_row %}
-                        <div
-                            class="flex h-10 w-10 flex-col items-center justify-center rounded border text-xs
-                                   {% if day.status == 'red' %} bg-red-100 border-red-400 text-red-900
-                                   {% elif day.status == 'green' %} bg-emerald-100 border-emerald-400 text-emerald-900
-                                   {% else %} bg-gray-100 border-gray-300 text-gray-600{% endif %}"
-                            title="{{ day.date.strftime('%a %d %b') }} - {{ day.unassigned }} uncovered of {{ day.total }} shifts">
-                            <span>{{ day.date.strftime('%d') }}</span>
-                            <span>{{ day.date.strftime('%a')[:1] }}</span>
+                <div class="flex flex-col gap-1">
+                    {% for row in coverage_rows %}
+                        <div class="flex gap-1">
+                            {% for day in row %}
+                                <div
+                                    class="flex h-8 w-8 flex-col items-center justify-center rounded border text-[10px]
+                                           {% if day.status == 'red' %} bg-red-100 border-red-400 text-red-900
+                                           {% elif day.status == 'green' %} bg-emerald-100 border-emerald-400 text-emerald-900
+                                           {% else %} bg-gray-100 border-gray-300 text-gray-600{% endif %}"
+                                    title="{{ day.date.strftime('%a %d %b') }} - {{ day.unassigned }} uncovered of {{ day.total }} shifts">
+                                    <span>{{ day.date.strftime('%d') }}</span>
+                                    <span>{{ day.date.strftime('%a')[:1] }}</span>
+                                </div>
+                            {% endfor %}
                         </div>
                     {% endfor %}
                 </div>
 
-                <div class="flex gap-1">
-                    {% for day in second_row %}
-                        <div
-                            class="flex h-10 w-10 flex-col items-center justify-center rounded border text-xs
-                                   {% if day.status == 'red' %} bg-red-100 border-red-400 text-red-900
-                                   {% elif day.status == 'green' %} bg-emerald-100 border-emerald-400 text-emerald-900
-                                   {% else %} bg-gray-100 border-gray-300 text-gray-600{% endif %}"
-                            title="{{ day.date.strftime('%a %d %b') }} - {{ day.unassigned }} uncovered of {{ day.total }} shifts">
-                            <span>{{ day.date.strftime('%d') }}</span>
-                            <span>{{ day.date.strftime('%a')[:1] }}</span>
-                        </div>
-                    {% endfor %}
+                <div class="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                    <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-red-100 border border-red-400"></span>Uncovered day (at least one gap)</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-emerald-100 border border-emerald-400"></span>Fully covered day</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-gray-100 border border-gray-300"></span>No shifts</span>
                 </div>
-            </div>
+            </section>
+        {% endif %}
 
-            <div class="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-600">
-                <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-red-100 border border-red-400"></span>Uncovered day (at least one gap)</span>
-                <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-emerald-100 border border-emerald-400"></span>Fully covered day</span>
-                <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-gray-100 border border-gray-300"></span>No shifts</span>
-            </div>
-        </section>
-    {% endif %}
-
-    <section class="space-y-3">
-        <h2 class="text-lg font-semibold text-gray-900">Earliest unassigned shifts per store</h2>
-        <div class="overflow-x-auto rounded-lg bg-white shadow">
+        <section class="space-y-3">
+            <h2 class="text-lg font-semibold text-gray-900">Earliest unassigned shifts per store</h2>
+            <div class="overflow-x-auto rounded-lg bg-white shadow">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-gray-50">
                     <tr>
@@ -110,7 +95,8 @@
                 </tbody>
             </table>
         </div>
-    </section>
+        </section>
+    </div>
 
     <section class="space-y-3">
         <h2 class="text-lg font-semibold text-gray-900">Unassigned shifts (all)</h2>
