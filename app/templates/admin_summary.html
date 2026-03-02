@@ -4,112 +4,140 @@
 
 {% block content %}
 <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-
-    <div class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-lg bg-white p-4 shadow">
-            <p class="text-sm text-gray-500">Total Users</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ users|length }}</p>
+    <div class="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p class="text-sm text-gray-600">Overview of coverage and uncovered shifts.</p>
         </div>
-        <div class="rounded-lg bg-white p-4 shadow">
-            <p class="text-sm text-gray-500">Total Stores</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ stores|length }}</p>
-        </div>
-        <div class="rounded-lg bg-white p-4 shadow">
-            <p class="text-sm text-gray-500">Unassigned Shifts</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ shifts|length }}</p>
+        <div class="text-sm text-gray-600 space-y-0.5">
+            <p><span class="font-medium">Total users:</span> {{ users|length }}</p>
+            <p><span class="font-medium">Total stores:</span> {{ stores|length }}</p>
+            <p><span class="font-medium">Unassigned shifts (≈ next 2 months):</span> {{ total_unassigned_14d }}</p>
         </div>
     </div>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="space-y-2">
-        {% for message in messages %}
-          <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ message }}</div>
-        {% endfor %}
+            {% for message in messages %}
+                <div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">{{ message }}</div>
+            {% endfor %}
         </div>
       {% endif %}
     {% endwith %}
 
-    <div class="bg-white shadow rounded-lg overflow-x-auto">
-        <div class="border-b border-gray-200 px-4 py-3">
-            <h2 class="text-lg font-semibold text-gray-900">Stores with unassigned shifts</h2>
-        </div>
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Next shift</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        <a href="{{ url_for('rota.admin_summary', sort='store', dir=dir) }}" class="text-indigo-600 hover:text-indigo-800">
-                            Store
-                        </a>
-                        {% if request.args.get('sort') == 'store' %}
-                            <span class="ml-1 text-gray-500">{{ '↑' if request.args.get('dir') == 'asc' else '↓' }}</span>
-                        {% endif %}
-                    </th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        <a href="{{ url_for('rota.admin_summary', sort='team', dir=dir) }}" class="text-indigo-600 hover:text-indigo-800">
-                            Team
-                        </a>
-                        {% if request.args.get('sort') == 'team' %}
-                            <span class="ml-1 text-gray-500">{{ '↑' if request.args.get('dir') == 'asc' else '↓' }}</span>
-                        {% endif %}
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 bg-white">
-                {% for store, shift_date in stores_uncovered %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm text-gray-700">{{ shift_date.strftime('%a %d/%m') }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-800">{{ store.name }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">{{ store.team.name if store.team else '-' }}</td>
-                    </tr>
-                {% else %}
+    <div class="grid gap-6 md:grid-cols-2 md:items-start">
+        {% if coverage_rows %}
+            <section class="space-y-2" aria-label="Coverage for the next two months">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 class="text-lg font-semibold text-gray-900">Upcoming coverage (≈ 2 months)</h2>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    {% for row in coverage_rows %}
+                        <div class="flex gap-1">
+                            {% for day in row %}
+                                <div
+                                    class="flex h-8 w-8 flex-col items-center justify-center rounded border text-[10px]
+                                           {% if day.status == 'red' %} bg-red-100 border-red-400 text-red-900
+                                           {% elif day.status == 'green' %} bg-emerald-100 border-emerald-400 text-emerald-900
+                                           {% else %} bg-gray-100 border-gray-300 text-gray-600{% endif %}"
+                                    title="{{ day.date.strftime('%a %d %b') }} - {{ day.unassigned }} uncovered of {{ day.total }} shifts">
+                                    <span>{{ day.date.strftime('%d') }}</span>
+                                    <span>{{ day.date.strftime('%a')[:1] }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                    <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-red-100 border border-red-400"></span>Uncovered day (at least one gap)</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-emerald-100 border border-emerald-400"></span>Fully covered day</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-gray-100 border border-gray-300"></span>No shifts</span>
+                </div>
+            </section>
+        {% endif %}
+
+        <section class="space-y-3">
+            <h2 class="text-lg font-semibold text-gray-900">Earliest unassigned shifts per store</h2>
+            <div class="overflow-x-auto rounded-lg bg-white shadow">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
                     <tr>
-                        <td colspan="3" class="px-4 py-6 text-center text-sm text-gray-500">No uncovered stores 🎉</td>
+                        <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Next shift</th>
+                        <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                            <a href="{{ url_for('rota.admin_summary', sort='store', dir=dir) }}" class="hover:underline">Store</a>
+                            {% if request.args.get('sort') == 'store' %}
+                                <span class="text-gray-400">{{ '↑' if request.args.get('dir') == 'asc' else '↓' }}</span>
+                            {% endif %}
+                        </th>
+                        <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                            <a href="{{ url_for('rota.admin_summary', sort='team', dir=dir) }}" class="hover:underline">Team</a>
+                            {% if request.args.get('sort') == 'team' %}
+                                <span class="text-gray-400">{{ '↑' if request.args.get('dir') == 'asc' else '↓' }}</span>
+                            {% endif %}
+                        </th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    {% for store, shift_date in stores_uncovered %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 text-sm text-gray-800">{{ shift_date.strftime('%a %d/%m') }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-800">{{ store.name }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-800">{{ store.team.name }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="3" class="px-4 py-4 text-center text-sm text-gray-500">No uncovered stores 🎉</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        </section>
     </div>
 
-    <div class="bg-white shadow rounded-lg overflow-x-auto">
-        <div class="border-b border-gray-200 px-4 py-3">
-            <h2 class="text-lg font-semibold text-gray-900">Unassigned Shifts</h2>
-        </div>
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Store</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Pickup Time</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Team</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 bg-white">
-                {% for shift in shifts %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm text-gray-700">{{ shift.date.strftime('%a %d/%m') }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-800">{{ shift.store.name }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">{{ shift.store.pickup_time }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">{{ shift.store.team.name if shift.store.team else '-' }}</td>
-                    </tr>
-                {% else %}
+    <section class="space-y-3">
+        <h2 class="text-lg font-semibold text-gray-900">Unassigned shifts (all)</h2>
+        <div class="overflow-x-auto rounded-lg bg-white shadow">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
                     <tr>
-                        <td colspan="4" class="px-4 py-6 text-center text-sm text-gray-500">No unassigned shifts 🎉</td>
+                        <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Date</th>
+                        <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Store</th>
+                        <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Pickup time</th>
+                        <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Team</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    {% for shift in shifts %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 text-sm text-gray-800">{{ shift.date.strftime('%a %d/%m') }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-800">{{ shift.store.name }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-800">{{ shift.store.pickup_time }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-800">{{ shift.store.team.name }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="px-4 py-4 text-center text-sm text-gray-500">No unassigned shifts 🎉</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 
-    <div class="bg-white shadow rounded-lg p-4">
-        <h2 class="text-lg font-semibold text-gray-900 mb-3">Users</h2>
-        <ul class="space-y-1 text-sm text-gray-700">
+    <section class="space-y-2">
+        <h2 class="text-lg font-semibold text-gray-900">Users</h2>
+        <ul class="divide-y divide-gray-100 rounded-lg bg-white shadow">
             {% for user in users %}
-                <li>{{ user.email }} – {{ user.role }}</li>
+                <li class="flex items-center justify-between px-4 py-2 text-sm">
+                    <span class="text-gray-800 break-all">{{ user.email }}</span>
+                    <span class="text-xs uppercase tracking-wide text-gray-500">{{ user.role }}</span>
+                </li>
             {% endfor %}
         </ul>
-    </div>
+    </section>
 </div>
 {% endblock %}
