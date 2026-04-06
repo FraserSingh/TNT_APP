@@ -27,11 +27,32 @@
 
     <div class="bg-white shadow rounded-lg p-4">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Add Store</h2>
-        <form method="POST" class="grid gap-3 md:grid-cols-5">
+        <form method="POST" class="grid gap-3 md:grid-cols-6">
             <input type="text" name="name" placeholder="New store name" required class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
             <input type="text" name="team" placeholder="Team" required class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-            <input type="text" name="pickup_time" placeholder="Pickup time" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <input type="text" name="address" placeholder="Address" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 md:col-span-2">
+            <input type="text" name="pickup_time" placeholder="Pickup time (optional)" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
             <input type="text" name="description" placeholder="Description" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 md:col-span-2">
+
+            <div class="md:col-span-5 flex flex-wrap items-center gap-3 text-sm text-gray-700">
+                <span class="font-medium">Collection days:</span>
+                {% set days = [
+                    ('collects_monday', 'Mon'),
+                    ('collects_tuesday', 'Tue'),
+                    ('collects_wednesday', 'Wed'),
+                    ('collects_thursday', 'Thu'),
+                    ('collects_friday', 'Fri'),
+                    ('collects_saturday', 'Sat'),
+                    ('collects_sunday', 'Sun'),
+                ] %}
+                {% for field, label in days %}
+                    <label class="inline-flex items-center gap-1">
+                        <input type="checkbox" name="{{ field }}" checked class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span>{{ label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+
             <div class="md:col-span-5">
                 <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Add Store</button>
             </div>
@@ -42,10 +63,17 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Team</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Pickup Time</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                        <a href="{{ url_for('admin.stores', sort='name') }}" class="hover:underline">Name</a>
+                    </th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                        <a href="{{ url_for('admin.stores', sort='address') }}" class="hover:underline">Address</a>
+                    </th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                        <a href="{{ url_for('admin.stores', sort='pickup_time') }}" class="hover:underline">Pickup Time</a>
+                    </th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Description</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Collection Days</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
                 </tr>
             </thead>
@@ -53,9 +81,20 @@
                 {% for store in stores %}
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-sm text-gray-800">{{ store.name }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">{{ store.team.name if store.team else "-" }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">{{ store.pickup_time }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ store.address or '-' }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ store.pickup_time or '-' }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">{{ store.description }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        {% set labels = [] %}
+                        {% if store.collects_monday %}{% set _ = labels.append('Mon') %}{% endif %}
+                        {% if store.collects_tuesday %}{% set _ = labels.append('Tue') %}{% endif %}
+                        {% if store.collects_wednesday %}{% set _ = labels.append('Wed') %}{% endif %}
+                        {% if store.collects_thursday %}{% set _ = labels.append('Thu') %}{% endif %}
+                        {% if store.collects_friday %}{% set _ = labels.append('Fri') %}{% endif %}
+                        {% if store.collects_saturday %}{% set _ = labels.append('Sat') %}{% endif %}
+                        {% if store.collects_sunday %}{% set _ = labels.append('Sun') %}{% endif %}
+                        {{ labels|join(', ') if labels else '-' }}
+                    </td>
                     <td class="px-4 py-3 text-sm">
                         <form method="POST" action="{{ url_for('admin.delete_store', store_id=store.id) }}">
                             <select name="action" class="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" onchange='

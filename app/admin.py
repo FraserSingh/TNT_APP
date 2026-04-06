@@ -161,7 +161,7 @@ def stores():
             name = request.form["name"]
             description = request.form.get("description")
             address = request.form.get("address")
-            pickup_time = request.form.get("pickup_time")
+            pickup_time = request.form.get("pickup_time") or None
             team_name = request.form["team"]
 
             try:
@@ -171,12 +171,28 @@ def stores():
                     db.session.add(team)
                     db.session.commit()
 
+                # Days of week this store collects on; default to all days
+                collects_monday = bool(request.form.get("collects_monday", True))
+                collects_tuesday = bool(request.form.get("collects_tuesday", True))
+                collects_wednesday = bool(request.form.get("collects_wednesday", True))
+                collects_thursday = bool(request.form.get("collects_thursday", True))
+                collects_friday = bool(request.form.get("collects_friday", True))
+                collects_saturday = bool(request.form.get("collects_saturday", True))
+                collects_sunday = bool(request.form.get("collects_sunday", True))
+
                 store = Store(
                     name=name,
                     description=description,
                     address=address,
                     pickup_time=pickup_time,
                     team=team,
+                    collects_monday=collects_monday,
+                    collects_tuesday=collects_tuesday,
+                    collects_wednesday=collects_wednesday,
+                    collects_thursday=collects_thursday,
+                    collects_friday=collects_friday,
+                    collects_saturday=collects_saturday,
+                    collects_sunday=collects_sunday,
                 )
                 db.session.add(store)
                 db.session.flush()
@@ -190,9 +206,20 @@ def stores():
                 db.session.rollback()
                 flash("An error occurred while adding the store. Please try again.")
 
-    stores = Store.query.all()
+    # Simple server-side sorting for the stores table.
+    sort_key = request.args.get("sort", "name")
+    sort_columns = {
+        "name": Store.name,
+        "address": Store.address,
+        "pickup_time": Store.pickup_time,
+    }
+    sort_column = sort_columns.get(sort_key, Store.name)
+
+    stores = Store.query.order_by(sort_column.asc()).all()
     teams = Team.query.all()
-    return render_template("admin_stores.html", stores=stores, teams=teams)
+    return render_template(
+        "admin_stores.html", stores=stores, teams=teams, sort=sort_key
+    )
 
 
 # --- Optional: Edit / Delete endpoint ---
@@ -209,6 +236,15 @@ def edit_store(store_id):
             store.description = request.form.get("description")
             store.address = request.form.get("address")
             store.pickup_time = request.form.get("pickup_time")
+
+            # Update collection days; unchecked boxes will be absent
+            store.collects_monday = bool(request.form.get("collects_monday"))
+            store.collects_tuesday = bool(request.form.get("collects_tuesday"))
+            store.collects_wednesday = bool(request.form.get("collects_wednesday"))
+            store.collects_thursday = bool(request.form.get("collects_thursday"))
+            store.collects_friday = bool(request.form.get("collects_friday"))
+            store.collects_saturday = bool(request.form.get("collects_saturday"))
+            store.collects_sunday = bool(request.form.get("collects_sunday"))
             team_name = request.form["team"]
             team = Team.query.filter_by(name=team_name).first()
             if not team:

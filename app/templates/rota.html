@@ -183,9 +183,10 @@
                             {% for date in dates %}
                                 {% set shift = grid[store][date] %}
                                 <td class="px-3 py-2 align-top text-xs
-                                           {% if shift.volunteer %} bg-emerald-50 border-l border-emerald-200
+                                           {% if shift is none %} bg-gray-50 border-l border-gray-100
+                                           {% elif shift.volunteer %} bg-emerald-50 border-l border-emerald-200
                                            {% else %} bg-red-200 border-l border-red-400{% endif %}">
-                                    {% if shift.volunteer %}
+                                    {% if shift and shift.volunteer %}
                                         <div class="mb-1 text-gray-800">{{ shift.volunteer.email }}</div>
 
                                         {% if current_user.role == 'admin' or shift.volunteer == current_user %}
@@ -194,7 +195,7 @@
                                             </form>
                                         {% endif %}
 
-                                    {% else %}
+                                    {% elif shift %}
 
                                         {% if current_user.role == 'admin' %}
                                             <form method="POST" action="{{ url_for('rota.toggle_shift', shift_id=shift.id) }}" class="space-x-1">

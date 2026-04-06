@@ -110,23 +110,39 @@ def rota():
     else:
         stores = [store for store in all_stores if not is_dummy_store(store)]
 
-    shifts = Shift.query.filter(Shift.date.in_(dates)).all()
+    # Load all existing shifts for the visible window in a single query and
+    # build a dictionary for O(1) lookup by (store_id, date).
+    store_ids = [s.id for s in stores]
+    shifts = Shift.query.filter(
+        Shift.date.in_(dates), Shift.store_id.in_(store_ids)
+    ).all()
+
+    shift_map = {(s.store_id, s.date): s for s in shifts}
+
+    def store_collects_on_date(store, date):
+        """Return True if this store is configured to collect on the given day."""
+
+        weekday = date.weekday()  # Monday=0, Sunday=6
+        flags = [
+            getattr(store, "collects_monday", True),
+            getattr(store, "collects_tuesday", True),
+            getattr(store, "collects_wednesday", True),
+            getattr(store, "collects_thursday", True),
+            getattr(store, "collects_friday", True),
+            getattr(store, "collects_saturday", True),
+            getattr(store, "collects_sunday", True),
+        ]
+        return bool(flags[weekday])
 
     grid = {}
-
     for store in stores:
         grid[store] = {}
         for date in dates:
-            shift = next(
-                (s for s in shifts if s.store_id == store.id and s.date == date),
-                None,
-            )
-            if not shift:
-                shift = Shift(date=date, store_id=store.id)
-                db.session.add(shift)
-            grid[store][date] = shift
-
-    db.session.commit()
+            if store_collects_on_date(store, date):
+                grid[store][date] = shift_map.get((store.id, date))
+            else:
+                # No collection on this day for this store
+                grid[store][date] = None
 
     # Build coverage summaries from today using existing Shift rows only.
     # Always compute 60 days so admins can see an extended view; the first
@@ -188,7 +204,9 @@ def rota():
         for i in range(0, len(coverage_days_full), 7):
             coverage_rows_admin.append(coverage_days_full[i : i + 7])
 
-    users = User.query.all()
+    # Only admins need the full user list for assignment; volunteers can
+    # work with just their own identity.
+    users = User.query.all() if is_admin else []
 
     return render_template(
         "rota.html",

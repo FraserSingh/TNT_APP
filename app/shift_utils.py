@@ -16,13 +16,18 @@ def create_unassigned_shifts_for_store(store, days: int = DEFAULT_SHIFT_DAYS) ->
 
     for offset in range(days):
         shift_date = base_date + timedelta(days=offset)
-        db.session.add(
-            Shift(
-                date=shift_date,
-                store_id=store.id,
-                volunteer_id=None,
+
+        # Avoid creating duplicate shifts when this helper is called
+        # multiple times or after adding a unique constraint.
+        existing = Shift.query.filter_by(store_id=store.id, date=shift_date).first()
+        if existing is None:
+            db.session.add(
+                Shift(
+                    date=shift_date,
+                    store_id=store.id,
+                    volunteer_id=None,
+                )
             )
-        )
 
 
 def classify_coverage(assigned_shifts: int, total_shifts: int) -> str:

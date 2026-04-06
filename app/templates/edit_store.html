@@ -29,6 +29,27 @@
             </div>
 
             <div>
+                <span class="mb-1 block text-sm font-medium text-gray-700">Collection days</span>
+                <div class="flex flex-wrap gap-3 text-sm text-gray-700">
+                    {% set days = [
+                        ('collects_monday', 'Mon', store.collects_monday),
+                        ('collects_tuesday', 'Tue', store.collects_tuesday),
+                        ('collects_wednesday', 'Wed', store.collects_wednesday),
+                        ('collects_thursday', 'Thu', store.collects_thursday),
+                        ('collects_friday', 'Fri', store.collects_friday),
+                        ('collects_saturday', 'Sat', store.collects_saturday),
+                        ('collects_sunday', 'Sun', store.collects_sunday),
+                    ] %}
+                    {% for field, label, value in days %}
+                        <label class="inline-flex items-center gap-1">
+                            <input type="checkbox" name="{{ field }}" {% if value %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <span>{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Team</label>
                 <select name="team" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                     {% for team in teams %}
