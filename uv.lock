@@ -666,6 +666,7 @@ dependencies = [
     { name = "pre-commit" },
     { name = "psycopg", extra = ["binary"] },
     { name = "python-dotenv" },
+    { name = "ruff" },
     { name = "werkzeug" },
 ]
 
@@ -687,6 +688,7 @@ requires-dist = [
     { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.1" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "ruff", specifier = ">=0.15.2" },
     { name = "werkzeug", specifier = ">=3.1.5" },
 ]
 

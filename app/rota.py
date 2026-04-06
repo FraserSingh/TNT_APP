@@ -4,10 +4,11 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import asc, desc, func
+from sqlalchemy.orm import joinedload
 
 from .extensions import db
 from .models import Shift, Store, Team, User
-from .shift_utils import classify_coverage, create_unassigned_shifts_for_store
+from .shift_utils import classify_coverage, store_collects_on_date
 
 logger = logging.getLogger(__name__)
 
@@ -26,53 +27,13 @@ def is_dummy_store(store):
     return store.name in DUMMY_STORE_NAMES
 
 
-def ensure_dummy_stores():
-    if Store.query.first():
-        return
-
-    default_team = Team.query.filter_by(name="COLLECTION").first()
-    if not default_team:
-        default_team = Team(name="COLLECTION")
-        db.session.add(default_team)
-        db.session.flush()
-
-    dummy_stores = [
-        ("Store Alpha", "08:30 PM"),
-        ("Store Bravo", "09:00 PM"),
-        ("Store Charlie", "09:30 PM"),
-        ("Store Delta", "10:00 PM"),
-        ("Store Echo", "10:30 PM"),
-    ]
-
-    for store_name, pickup_time in dummy_stores:
-        store = Store(
-            name=store_name,
-            description="Demo store",
-            pickup_time=pickup_time,
-            team=default_team,
-        )
-        db.session.add(store)
-        db.session.flush()
-
-        # Create unassigned dummy shifts for the store
-        create_unassigned_shifts_for_store(store)
-
-    db.session.commit()
-
-
 @rota_bp.route("/")
 @login_required
 def rota():
-    ensure_dummy_stores()
-
     today = datetime.now(timezone.utc).date()
-    # Default to a 2-week "from today" view for general users.
     window_mode = request.args.get("window", "from_today")
     is_admin = current_user.role == "admin"
 
-    # For admins, default to the extended admin view when no explicit
-    # admin_view parameter is provided. When admin_view is set via the
-    # query string, respect that choice.
     admin_view_param = request.args.get("admin_view")
     if is_admin:
         if admin_view_param is None:
@@ -83,22 +44,18 @@ def rota():
         admin_view = False
 
     if admin_view:
-        # Admin view shows a longer horizon (up to ~2 months) in the grid.
         start_date = today
         span_days = 60
     else:
-        # Standard volunteer view can show either the current calendar
-        # week or a rolling 14-day window from today.
         if window_mode == "from_today":
             start_date = today
             span_days = 14
         else:
-            # Calendar week (Monday-Sunday containing today)
             start_date = today - timedelta(days=today.weekday())
             span_days = 7
 
-    dates = [start_date + timedelta(days=i) for i in range(span_days)]
-    weekday_names = [d.strftime("%A") for d in dates]
+    dates = [start_date + timedelta(days=index) for index in range(span_days)]
+    weekday_names = [current_date.strftime("%A") for current_date in dates]
     show_dummy_stores = request.args.get("show_dummy", "1") == "1"
 
     all_stores = Store.query.order_by(Store.name.asc()).all()
@@ -110,49 +67,26 @@ def rota():
     else:
         stores = [store for store in all_stores if not is_dummy_store(store)]
 
-    # Load all existing shifts for the visible window in a single query and
-    # build a dictionary for O(1) lookup by (store_id, date).
-    store_ids = [s.id for s in stores]
+    store_ids = [store.id for store in stores]
     shifts = Shift.query.filter(
         Shift.date.in_(dates), Shift.store_id.in_(store_ids)
     ).all()
-
-    shift_map = {(s.store_id, s.date): s for s in shifts}
-
-    def store_collects_on_date(store, date):
-        """Return True if this store is configured to collect on the given day."""
-
-        weekday = date.weekday()  # Monday=0, Sunday=6
-        flags = [
-            getattr(store, "collects_monday", True),
-            getattr(store, "collects_tuesday", True),
-            getattr(store, "collects_wednesday", True),
-            getattr(store, "collects_thursday", True),
-            getattr(store, "collects_friday", True),
-            getattr(store, "collects_saturday", True),
-            getattr(store, "collects_sunday", True),
-        ]
-        return bool(flags[weekday])
+    shift_map = {(shift.store_id, shift.date): shift for shift in shifts}
 
     grid = {}
     for store in stores:
         grid[store] = {}
-        for date in dates:
-            if store_collects_on_date(store, date):
-                grid[store][date] = shift_map.get((store.id, date))
-            else:
-                # No collection on this day for this store
-                grid[store][date] = None
+        for current_date in dates:
+            grid[store][current_date] = {
+                "collects": store_collects_on_date(store, current_date),
+                "shift": shift_map.get((store.id, current_date)),
+            }
 
-    # Build coverage summaries from today using existing Shift rows only.
-    # Always compute 60 days so admins can see an extended view; the first
-    # 14 days are used for the standard widget.
     coverage_window_days = 60
     coverage_start = today
     coverage_end = coverage_start + timedelta(days=coverage_window_days)
-
     coverage_dates_full = [
-        coverage_start + timedelta(days=i) for i in range(coverage_window_days)
+        coverage_start + timedelta(days=index) for index in range(coverage_window_days)
     ]
 
     coverage_query = (
@@ -166,46 +100,40 @@ def rota():
         .all()
     )
 
-    coverage_map = {}
-    for row in coverage_query:
-        coverage_map[row.date] = {"total": row.total, "assigned": row.assigned}
+    coverage_map = {
+        row.date: {"total": row.total, "assigned": row.assigned}
+        for row in coverage_query
+    }
 
-    # First 14 days for the standard widget
     coverage_days_user = []
-    user_window_days = 14
-    for date in coverage_dates_full[:user_window_days]:
-        stats = coverage_map.get(date, {"total": 0, "assigned": 0})
-        status = classify_coverage(stats["assigned"], stats["total"])
+    for current_date in coverage_dates_full[:14]:
+        stats = coverage_map.get(current_date, {"total": 0, "assigned": 0})
         coverage_days_user.append(
             {
-                "date": date,
+                "date": current_date,
                 "total": stats["total"],
                 "assigned": stats["assigned"],
-                "status": status,
+                "status": classify_coverage(stats["assigned"], stats["total"]),
             }
         )
 
-    # Full 60-day view chunked into rows of seven for admins.
     coverage_rows_admin = []
     if is_admin:
         coverage_days_full = []
-        for date in coverage_dates_full:
-            stats = coverage_map.get(date, {"total": 0, "assigned": 0})
-            status = classify_coverage(stats["assigned"], stats["total"])
+        for current_date in coverage_dates_full:
+            stats = coverage_map.get(current_date, {"total": 0, "assigned": 0})
             coverage_days_full.append(
                 {
-                    "date": date,
+                    "date": current_date,
                     "total": stats["total"],
                     "assigned": stats["assigned"],
-                    "status": status,
+                    "status": classify_coverage(stats["assigned"], stats["total"]),
                 }
             )
 
-        for i in range(0, len(coverage_days_full), 7):
-            coverage_rows_admin.append(coverage_days_full[i : i + 7])
+        for index in range(0, len(coverage_days_full), 7):
+            coverage_rows_admin.append(coverage_days_full[index : index + 7])
 
-    # Only admins need the full user list for assignment; volunteers can
-    # work with just their own identity.
     users = User.query.all() if is_admin else []
 
     return render_template(
@@ -252,7 +180,8 @@ def admin_summary():
     today = datetime.now(timezone.utc).date()
 
     shifts_uncovered = (
-        Shift.query.filter(Shift.volunteer_id.is_(None), Shift.date >= today)
+        Shift.query.options(joinedload(Shift.store).joinedload(Store.team))
+        .filter(Shift.volunteer_id.is_(None), Shift.date >= today)
         .order_by(Shift.date.asc())
         .all()
     )

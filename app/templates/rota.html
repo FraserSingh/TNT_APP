@@ -155,6 +155,8 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-red-50 border border-red-200"></span>Unassigned shift</span>
                     <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-emerald-50 border border-emerald-200"></span>Assigned shift</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-amber-50 border border-amber-200"></span>Shift not generated</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded bg-gray-50 border border-gray-200"></span>No collection</span>
                 </div>
             </div>
         </div>
@@ -177,16 +179,21 @@
                         <tr class="align-top">
                             <td class="sticky left-0 z-10 whitespace-nowrap bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow-sm">
                                 <div>{{ store.name }}</div>
-                                <div class="text-xs text-gray-500">{{ store.pickup_time }}</div>
+                                <div class="text-xs text-gray-500">{{ store.pickup_time.strftime('%H:%M') if store.pickup_time else 'No collection time' }}</div>
                             </td>
 
                             {% for date in dates %}
-                                {% set shift = grid[store][date] %}
+                                {% set cell = grid[store][date] %}
+                                {% set shift = cell.shift %}
                                 <td class="px-3 py-2 align-top text-xs
-                                           {% if shift is none %} bg-gray-50 border-l border-gray-100
+                                           {% if not cell.collects %} bg-gray-50 border-l border-gray-100
+                                           {% elif shift is none %} bg-amber-50 border-l border-amber-200
                                            {% elif shift.volunteer %} bg-emerald-50 border-l border-emerald-200
                                            {% else %} bg-red-200 border-l border-red-400{% endif %}">
-                                    {% if shift and shift.volunteer %}
+                                    {% if not cell.collects %}
+                                        <div class="text-gray-500">No collection</div>
+
+                                    {% elif shift and shift.volunteer %}
                                         <div class="mb-1 text-gray-800">{{ shift.volunteer.email }}</div>
 
                                         {% if current_user.role == 'admin' or shift.volunteer == current_user %}
@@ -216,6 +223,9 @@
                                                 <button type="submit" class="rounded-md bg-indigo-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-indigo-700">Assign</button>
                                             </form>
                                         {% endif %}
+
+                                    {% else %}
+                                        <div class="text-amber-800">Not generated</div>
 
                                     {% endif %}
                                 </td>

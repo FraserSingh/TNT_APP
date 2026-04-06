@@ -16,4 +16,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["uv", "run", "gunicorn", "app:create_app()", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "2"]
+CMD ["uv", "run", "gunicorn", "app:create_app()", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "2"]

@@ -31,7 +31,7 @@
             <input type="text" name="name" placeholder="New store name" required class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
             <input type="text" name="team" placeholder="Team" required class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
             <input type="text" name="address" placeholder="Address" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 md:col-span-2">
-            <input type="text" name="pickup_time" placeholder="Pickup time (optional)" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <input type="time" name="pickup_time" placeholder="Pickup time (optional)" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
             <input type="text" name="description" placeholder="Description" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 md:col-span-2">
 
             <div class="md:col-span-5 flex flex-wrap items-center gap-3 text-sm text-gray-700">
@@ -82,7 +82,7 @@
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-sm text-gray-800">{{ store.name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">{{ store.address or '-' }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">{{ store.pickup_time or '-' }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ store.pickup_time.strftime('%H:%M') if store.pickup_time else '-' }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">{{ store.description }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700">
                         {% set labels = [] %}

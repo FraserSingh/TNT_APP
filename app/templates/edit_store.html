@@ -25,7 +25,7 @@
 
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700">Pickup Time</label>
-                <input type="text" name="pickup_time" value="{{ store.pickup_time }}" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <input type="time" name="pickup_time" value="{{ store.pickup_time.strftime('%H:%M') if store.pickup_time else '' }}" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
             </div>
 
             <div>

@@ -1,7 +1,7 @@
 # Using app
 
 - run app locally with `uv run flask --app app:create_app --debug run --host 0.0.0.0 --port 8080`
-    - or `uv run gunicorn "app:create_app()" --bind 0.0.0.0:8080 --workers 1 --threads 2` for production like runs
+    - or `uv run gunicorn "app:create_app()" --bind 0.0.0.0:8080 --workers 2 --threads 2` for production like runs
 - login with email volunteer@example.com and password
 - user admin@example.com to view store manager page
 
@@ -26,7 +26,7 @@ uv sync
 
 ## Run with Gunicorn
 
-`uv run gunicorn "app:create_app()" --bind 0.0.0.0:8080 --workers 1 --threads 2`
+`uv run gunicorn "app:create_app()" --bind 0.0.0.0:8080 --workers 2 --threads 2`
 
 admin password is "admin_pass" or "newpassword123"
 

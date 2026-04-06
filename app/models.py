@@ -28,7 +28,7 @@ class Store(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     address = db.Column(db.String(200))
-    pickup_time = db.Column(db.String(50))
+    pickup_time = db.Column(db.Time)
     team_id = db.Column(db.Integer, db.ForeignKey("team.id"))
 
     # Days of week when this store has collections. Defaults to every day
